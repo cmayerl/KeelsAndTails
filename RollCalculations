@@ -1,0 +1,422 @@
+#This code calculates roll based off of the distance between the shoulder points. 
+
+
+RAD2DEG=57.2958;
+DEG2RAD=pi/180;
+CalibL=0.117;
+choice=1;
+h=1;
+begintime=clock;
+
+while choice>0
+disp(' ')
+%disp(' Last modified May 2009  ')
+disp(' ')
+disp('************   Welcome to Roll v1   ************')
+disp('        (2D Roll Calculations for Turtles)  ')
+disp(' ')
+disp('')
+disp('To run, you must have, smoothing programs, gabang, and Angie_Fig_Close')
+disp(' ')
+disp('Do you want to')
+disp(' ')
+disp('0.  Quit')
+disp(' ')
+disp('1. Criteria check for ventral file')
+disp(' ')
+disp('2. Clear and Restart')
+disp(' ')
+
+choice=input('?  ');
+disp(' ')
+disp(' ')
+
+if choice==1 %Process ventral file
+    
+%------ Loading digitized file ------
+[VenDigDataName,VenDigDataPath]=uigetfile('*v*xypts.csv','Find Your Digitized Data from Ventral View','*v*xypts.csv'); %Only looks for files with 'v' in it
+cd(VenDigDataPath);
+VenDigDataPreMatrix=csvread(VenDigDataName,1,0);
+    for TotalVenCols=1:1:22 %22 here because there are 11 points in ventral file
+    VenDigDataMatrix(:,TotalVenCols)=VenDigDataPreMatrix(:,TotalVenCols);
+    end
+%------ Done Loading digitized file ------
+
+%-------------Check for NaN--------------------------------
+NaNCheckVenDig=find(isnan(VenDigDataMatrix));
+
+    if NaNCheckVenDig>0
+%('Ventral Coordinate file is digitized incorrectly!');beep;
+    beep;
+    Venmsgbox=msgbox('Ventral Coordinate file Invalid','You Digitized Wrong! Be More Careful Next Time Buddy!','warn');
+    uiwait(Venmsgbox);
+    else 
+    disp('Ventral Coordinate file is valid and loaded')
+    end
+
+pause(0.75)
+%--------------End Check for NaN--------------------------- 
+
+%------Which turtle? - This determines the carapace length to use---------
+    clc
+     disp(' ')
+
+        choice=VenDigDataName(1,1:4);
+        if choice=='cp01'%1  %Cp01
+            CL=0.0993; turtle='CP01';
+        elseif choice=='cp02'%2  %Cp02
+            CL=0.1225; turtle='CP02';
+        elseif choice=='cp04'%3  %Cp04
+            CL=0.1127; turtle='CP04';
+        elseif choice=='cp05'%4  %Cp05
+            CL=0.1375; turtle='Cp05';
+        end
+   disp(strcat('You are working on  ',turtle));
+   
+   
+   
+   BL=CL;
+%Is turtle swimming left-to-right (X = 0) or right-to-left (X = 2)
+%the 8 in the vendigdataName tells you how long the name is
+    if VenDigDataName(1,1:8)=='cp01f02v';day=1;x=2;startframe=1;endframe=72;cycles=3;cut1=1;cut2=23;cut3=45;cut4=72;
+elseif VenDigDataName(1,1:8)=='cp01f05v';day=1;x=0;startframe=1;endframe=84;cycles=3;cut1=1;cut2=29;cut3=55;cut4=84;
+elseif VenDigDataName(1,1:8)=='cp01f08v';day=1;x=0;startframe=1;endframe=86;cycles=3;cut1=1;cut2=24;cut3=54;cut4=86;
+elseif VenDigDataName(1,1:8)=='cp01f10v';day=1;x=0;startframe=1;endframe=77;cycles=3;cut1=1;cut2=24;cut3=50;cut4=77;
+elseif VenDigDataName(1,1:8)=='cp01f11v';day=1;x=0;startframe=1;endframe=78;cycles=3;cut1=1;cut2=27;cut3=51;cut4=78;
+elseif VenDigDataName(1,1:8)=='cp01f12v';day=1;x=2;startframe=1;endframe=99;cycles=3;cut1=1;cut2=33;cut3=65;cut4=99;
+elseif VenDigDataName(1,1:8)=='cp01f13v';day=1;x=0;startframe=1;endframe=84;cycles=3;cut1=1;cut2=27;cut3=53;cut4=84;
+elseif VenDigDataName(1,1:8)=='cp02f03v';day=1;x=2;startframe=1;endframe=94;cycles=3;cut1=1;cut2=31;cut3=61;cut4=94;
+elseif VenDigDataName(1,1:8)=='cp02f04v';day=1;x=2;startframe=1;endframe=91;cycles=3;cut1=1;cut2=26;cut3=57;cut4=91;
+elseif VenDigDataName(1,1:8)=='cp02f05v';day=1;x=0;startframe=1;endframe=115;cycles=3;cut1=1;cut2=34;cut3=72;cut4=115;
+elseif VenDigDataName(1,1:8)=='cp02f06v';day=1;x=2;startframe=1;endframe=117;cycles=3;cut1=1;cut2=38;cut3=75;cut4=117;
+elseif VenDigDataName(1,1:8)=='cp02f08v';day=1;x=0;startframe=1;endframe=104;cycles=3;cut1=1;cut2=33;cut3=70;cut4=104;
+elseif VenDigDataName(1,1:8)=='cp02f11v';day=1;x=0;startframe=1;endframe=91;cycles=3;cut1=1;cut2=28;cut3=60;cut4=91;
+elseif VenDigDataName(1,1:8)=='cp02f13v';day=1;x=2;startframe=1;endframe=90;cycles=3;cut1=1;cut2=32;cut3=59;cut4=90;
+elseif VenDigDataName(1,1:8)=='cp02f14v';day=1;x=0;startframe=1;endframe=93;cycles=3;cut1=1;cut2=34;cut3=67;cut4=93;
+elseif VenDigDataName(1,1:8)=='cp04f05v';day=1;x=0;startframe=1;endframe=86;cycles=3;cut1=1;cut2=27;cut3=53;cut4=86;
+elseif VenDigDataName(1,1:8)=='cp04f06v';day=1;x=0;startframe=1;endframe=93;cycles=3;cut1=1;cut2=27;cut3=57;cut4=93;
+elseif VenDigDataName(1,1:8)=='cp04f11v';day=1;x=0;startframe=1;endframe=82;cycles=3;cut1=1;cut2=24;cut3=52;cut4=82;
+elseif VenDigDataName(1,1:8)=='cp04f12v';day=1;x=0;startframe=1;endframe=95;cycles=3;cut1=1;cut2=36;cut3=64;cut4=95;
+elseif VenDigDataName(1,1:8)=='cp04f13v';day=1;x=0;startframe=1;endframe=82;cycles=3;cut1=1;cut2=29;cut3=58;cut4=82;
+elseif VenDigDataName(1,1:8)=='cp04f14v';day=1;x=2;startframe=1;endframe=85;cycles=3;cut1=1;cut2=31;cut3=55;cut4=85;
+elseif VenDigDataName(1,1:8)=='cp04f15v';day=1;x=0;startframe=1;endframe=81;cycles=3;cut1=1;cut2=29;cut3=58;cut4=81;
+elseif VenDigDataName(1,1:8)=='cp05f02v';day=1;x=2;startframe=1;endframe=101;cycles=3;cut1=1;cut2=33;cut3=66;cut4=101;
+elseif VenDigDataName(1,1:8)=='cp05f06v';day=1;x=0;startframe=1;endframe=105;cycles=3;cut1=1;cut2=34;cut3=69;cut4=105;
+elseif VenDigDataName(1,1:8)=='cp05f07v';day=1;x=0;startframe=1;endframe=105;cycles=3;cut1=1;cut2=34;cut3=71;cut4=105;
+elseif VenDigDataName(1,1:8)=='cp05f08v';day=1;x=0;startframe=1;endframe=112;cycles=3;cut1=1;cut2=39;cut3=76;cut4=112;
+%elseif VenDigDataName(1,1:8)=='cp05f09v';day=1;x=2;startframe=1;endframe=;cycles=3;cut1=1;cut2=;cut3=;cut4=;
+elseif VenDigDataName(1,1:8)=='cp05f11v';day=1;x=0;startframe=1;endframe=100;cycles=3;cut1=1;cut2=32;cut3=63;cut4=100;
+elseif VenDigDataName(1,1:8)=='cp05f12v';day=1;x=2;startframe=1;endframe=87;cycles=3;cut1=1;cut2=29;cut3=60;cut4=87;
+%elseif VenDigDataName(1,1:8)=='cp44st12a';day=7;x=2;startframe=62;endframe=167;cycles=3;cut1=62;cut2=104;cut3=138;cut4=167;
+%elseif VenDigDataName(1,1:8)=='cp44st12b';day=7;x=0;startframe=60;endframe=165;cycles=3;cut1=60;cut2=92;cut3=130;cut4=165;
+%elseif VenDigDataName(1,1:8)=='cp44st13a';day=7;x=2;startframe=19;endframe=118;cycles=3;cut1=19;cut2=48;cut3=81;cut4=118;
+%elseif VenDigDataName(1,1:9)=='cp44st14a';day=7;x=0;startframe=46;endframe=136;cycles=3;cut1=46;cut2=74;cut3=104;cut4=136;
+%elseif VenDigDataName(1,1:9)=='cp44st15a';day=7;x=2;startframe=44;endframe=149;cycles=3;cut1=44;cut2=77;cut3=114;cut4=149;
+%elseif VenDigDataName(1,1:9)=='cp66st11a';day=8;x=2;startframe=22;endframe=153;cycles=3;cut1=22;cut2=61;cut3=107;cut4=153;
+%elseif VenDigDataName(1,1:9)=='cp66st11b';day=8;x=0;startframe=19;endframe=160;cycles=3;cut1=19;cut2=69;cut3=114;cut4=160;
+%elseif VenDigDataName(1,1:9)=='cp66st12a';day=8;x=2;startframe=42;endframe=142;cycles=3;cut1=42;cut2=71;cut3=102;cut4=142;
+%elseif VenDigDataName(1,1:9)=='cp66st13a';day=8;x=0;startframe=33;endframe=138;cycles=3;cut1=33;cut2=66;cut3=99;cut4=138;
+%elseif VenDigDataName(1,1:9)=='cp66st14a';day=8;x=2;startframe=82;endframe=189;cycles=3;cut1=82;cut2=119;cut3=155;cut4=189;
+%elseif VenDigDataName(1,1:9)=='cp66st15a';day=9;x=0;startframe=33;endframe=137;cycles=3;cut1=33;cut2=63;cut3=95;cut4=137;
+%elseif VenDigDataName(1,1:9)=='cp66st16a';day=9;x=0;startframe=22;endframe=145;cycles=3;cut1=22;cut2=61;cut3=100;cut4=145;
+%elseif VenDigDataName(1,1:9)=='cp66st16b';day=9;x=2;startframe=8;endframe=119;cycles=3;cut1=8;cut2=45;cut3=84;cut4=119;
+%elseif VenDigDataName(1,1:9)=='cp66st17a';day=9;x=2;startframe=5;endframe=131;cycles=3;cut1=5;cut2=46;cut3=89;cut4=131;
+%elseif VenDigDataName(1,1:9)=='cp66st18a';day=9;x=0;startframe=64;endframe=198;cycles=3;cut1=64;cut2=111;cut3=152;cut4=198;
+end
+
+%------ END - Which turtle? ------
+
+%------ Load calibration data ------
+
+    %framerate=input('Enter EFFECTIVE framing rate correcting for skipped frames (fr/sec):  ');
+    framerate=100;
+    timeperframe=(1/framerate);
+    disp(' ')
+    clc
+    disp('Framerate in code is 100fps - if this is not right, adjust it in the code')
+    disp(' ')
+    disp(' ')
+    pause(0.75)
+    disp(' ')
+   
+ %What calibration?
+        if day==1  
+            LatcalName='Day1LatCalxypts.csv';VentcalName='Day1VenCalxypts.csv';filmday='Filming Day #1';
+        end
+
+Latcal=csvread(LatcalName,1,0,[1,0,1,3]);
+Ventcal=csvread(VentcalName,1,0,[1,0,1,3]);
+clc
+disp(' ')
+disp('Digitized Coordinates and Calibration loaded for:')
+disp(' ')
+disp(turtle)
+disp(' ')
+disp(filmday)
+pause(0.5)
+
+
+    VENxcaldiff=Ventcal(1,3)-Ventcal(1,1);
+    VENycaldiff=Ventcal(1,4)-Ventcal(1,2);
+    VENpixeldist=sqrt((VENxcaldiff^2)+(VENycaldiff^2));
+    VENVideoXYCal=CalibL./VENpixeldist; %multiply pixel values by this conversion factor to get meters
+
+    LATxcaldiff=Latcal(1,3)-Latcal(1,1);
+    LATycaldiff=Latcal(1,4)-Latcal(1,2);
+    LATpixeldist=sqrt((LATxcaldiff^2)+(LATycaldiff^2));
+    LATVideoXYCal=CalibL./LATpixeldist; %multiply pixel values by this conversion factor to get meters
+%------ Done Loading Calibration ------
+
+
+%------ Correct for Turtle Swimming Right-to-Left (by making it appear that
+%turtle is swimming left-to-right)
+
+    coorddata=VenDigDataMatrix;
+    
+    [rows,columns]=size(coorddata); % calculates the size of the coordata matrix 
+    disp(' ')
+    disp(' ')
+    disp(' ')
+%   x=input('Is turtle swimming to the RIGHT (type "0") or LEFT (type "2")?  ','s');
+%   y=str2num(x);
+    y=x;
+    z=1-y;
+    coorddata=coorddata.*z;
+ 
+    %%% Assign origin (left point of calibration grid) and adjust coordinates
+    
+    for m=1:2:21 
+        coorddata(:,m)=coorddata(:,m)-Ventcal(1,1);
+    end
+   
+    for m=2:2:22 
+        coorddata(:,m)=coorddata(:,m)-Ventcal(1,2);
+    end
+%------ DONE Correcting for Direction of Swimming ------
+
+%------ SPECIFY LENGTH OF WHOLE SEQUENCE TO PROCESS ------
+    %Above rows and columns defines size of coorddata
+    
+% prompt = {'Start Frame:','End Frame:'};
+% dlg_title = 'Range to Use For Full Sequence';
+% num_lines = 1;
+% def = {'1',num2str(rows)};
+% answer = inputdlg(prompt,dlg_title,num_lines,def);
+% 
+% answer=str2double(answer);
+% startframe=answer(1:1);
+% endframe=answer(2:2);
+
+
+coorddata=coorddata(startframe:endframe,:);
+disp(' ')
+disp(' ')
+disp('Coordinate matrix has been reconfigured to use frame');disp(' '); ...
+    disp(startframe);disp('to');disp(' ');disp(endframe);disp('to calculate values for the whole trial sequence');
+pause(2.5)
+[rows,columns]=size(coorddata); %gets new size of coorddata
+
+%------ Calculate the COR position - this option copied from centrotAngieRevisedSAT
+
+%%% Generate completely interpolated matrix
+    interpolatedmatrix=ones(rows,200);
+    interpolatedmatrix(:,1)=coorddata(:,3);
+    interpolatedmatrix(:,2)=coorddata(:,4);
+    interpolatedmatrix(:,199)=coorddata(:,5);	
+    interpolatedmatrix(:,200)=coorddata(:,6);
+
+    Xmultiplier=((coorddata(:,5)-coorddata(:,3))/99);
+    Ymultiplier=((coorddata(:,6)-coorddata(:,4))/99);
+
+    for v=(3:2:197)
+        interpolatedmatrix(:,v)=Xmultiplier+interpolatedmatrix(:,v-2);
+    end
+
+    for vv=(4:2:198)
+        interpolatedmatrix(:,vv)=Ymultiplier+interpolatedmatrix(:,vv-2);
+    end
+
+%%% Designate points (x & y coords) from interpolated matrix and calibrate to meters
+    
+    for i=1:100 %Creates x-coordinates for 100 points
+        temp1=['XPoint', int2str(i), '=interpolatedmatrix(:,i*2-1).*VENVideoXYCal'];
+        eval(temp1);
+    end
+
+    for i=1:100 %Creates y-coordinates for 100 points 
+        temp2=['YPoint', int2str(i), '=interpolatedmatrix(:,i*2).*VENVideoXYCal'];
+        eval(temp2);
+    end
+
+    clc %to clear the window of the huge matrices above
+    
+    %Gabe created the above code to replace 200 lines of text (first 6 lines seen below)
+        %Point1X=interpolatedmatrix(:,1).*VideoXYCal;
+        %Point1Y=interpolatedmatrix(:,2).*VideoXYCal;
+        %Point2X=interpolatedmatrix(:,3).*VideoXYCal;
+        %Point2Y=interpolatedmatrix(:,4).*VideoXYCal;
+        %Point3X=interpolatedmatrix(:,5).*VideoXYCal;
+        %Point3Y=interpolatedmatrix(:,6).*VideoXYCal;
+
+    AllPointsXY=[XPoint1 YPoint1 XPoint2 YPoint2 XPoint3 YPoint3 XPoint4 YPoint4 XPoint5 YPoint5 XPoint6 YPoint6 XPoint7 YPoint7 XPoint8 YPoint8 XPoint9 YPoint9 XPoint10 YPoint10... 
+        XPoint11 YPoint11 XPoint12 YPoint12 XPoint13 YPoint13 XPoint14 YPoint14 XPoint15 YPoint15 XPoint16 YPoint16 XPoint17 YPoint17 XPoint18 YPoint18 XPoint19 YPoint19 XPoint20 YPoint20...
+		XPoint21 YPoint21 XPoint22 YPoint22 XPoint23 YPoint23 XPoint24 YPoint24 XPoint25 YPoint25 XPoint26 YPoint26 XPoint27 YPoint27 XPoint28 YPoint28 XPoint29 YPoint29 XPoint30 YPoint30...
+		XPoint31 YPoint31 XPoint32 YPoint32 XPoint33 YPoint33 XPoint34 YPoint34 XPoint35 YPoint35 XPoint36 YPoint36 XPoint37 YPoint37 XPoint38 YPoint38 XPoint39 YPoint39 XPoint40 YPoint40...
+		XPoint41 YPoint41 XPoint42 YPoint42 XPoint43 YPoint43 XPoint44 YPoint44 XPoint45 YPoint45 XPoint46 YPoint46 XPoint47 YPoint47 XPoint48 YPoint48 XPoint49 YPoint49 XPoint50 YPoint50...
+		XPoint51 YPoint51 XPoint52 YPoint52 XPoint53 YPoint53 XPoint54 YPoint54 XPoint55 YPoint55 XPoint56 YPoint56 XPoint57 YPoint57 XPoint58 YPoint58 XPoint59 YPoint59 XPoint60 YPoint60...
+		XPoint61 YPoint61 XPoint62 YPoint62 XPoint63 YPoint63 XPoint64 YPoint64 XPoint65 YPoint65 XPoint66 YPoint66 XPoint67 YPoint67 XPoint68 YPoint68 XPoint69 YPoint69 XPoint70 YPoint70...
+		XPoint71 YPoint71 XPoint72 YPoint72 XPoint73 YPoint73 XPoint74 YPoint74 XPoint75 YPoint75 XPoint76 YPoint76 XPoint77 YPoint77 XPoint78 YPoint78 XPoint79 YPoint79 XPoint80 YPoint80...
+		XPoint81 YPoint81 XPoint82 YPoint82 XPoint83 YPoint83 XPoint84 YPoint84 XPoint85 YPoint85 XPoint86 YPoint86 XPoint87 YPoint87 XPoint88 YPoint88 XPoint89 YPoint89 XPoint90 YPoint90...
+		XPoint91 YPoint91 XPoint92 YPoint92 XPoint93 YPoint93 XPoint94 YPoint94 XPoint95 YPoint95 XPoint96 YPoint96 XPoint97 YPoint97 XPoint98 YPoint98 XPoint99 YPoint99 XPoint100 YPoint100];
+
+%%% Start of key point definitions
+	
+    NosePointX=coorddata(:,1).*VENVideoXYCal;
+	NosePointY=coorddata(:,2).*VENVideoXYCal;
+	AnteriorPlastronX=coorddata(:,3).*VENVideoXYCal;
+	AnteriorPlastronY=coorddata(:,4).*VENVideoXYCal;
+	PosteriorPlastronX=coorddata(:,5).*VENVideoXYCal;
+	PosteriorPlastronY=coorddata(:,6).*VENVideoXYCal;
+	RShoulderX=coorddata(:,7).*VENVideoXYCal;
+	RShoulderY=coorddata(:,8).*VENVideoXYCal;
+	RElbowPointX=coorddata(:,9).*VENVideoXYCal;
+	RElbowPointY=coorddata(:,10).*VENVideoXYCal;
+	LShoulderX=coorddata(:,11).*VENVideoXYCal;
+	LShoulderY=coorddata(:,12).*VENVideoXYCal;
+	LElbowPointX=coorddata(:,13).*VENVideoXYCal;
+	LElbowPointY=coorddata(:,14).*VENVideoXYCal;
+	RHipPointX=coorddata(:,15).*VENVideoXYCal;
+	RHipPointY=coorddata(:,16).*VENVideoXYCal;
+	RKneePointX=coorddata(:,17).*VENVideoXYCal;
+	RKneePointY=coorddata(:,18).*VENVideoXYCal;
+    LHipPointX=coorddata(:,19).*VENVideoXYCal;
+	LHipPointY=coorddata(:,20).*VENVideoXYCal;
+	LKneePointX=coorddata(:,21).*VENVideoXYCal;
+	LKneePointY=coorddata(:,22).*VENVideoXYCal;
+	
+	NosePoint=[NosePointX NosePointY];
+	AnteriorPlastron=[AnteriorPlastronX AnteriorPlastronY];
+	PosteriorPlastron=[PosteriorPlastronX PosteriorPlastronY];
+	RShoulder=[RShoulderX RShoulderY];
+	RElbowPoint=[RElbowPointX RElbowPointY];
+	LShoulder=[LShoulderX LShoulderY];
+	LElbowPoint=[LElbowPointX LElbowPointY];
+	RHipPoint=[RHipPointX RHipPointY];
+	RKneePoint=[RKneePointX RKneePointY];
+	LHipPoint=[LHipPointX LHipPointY];
+	LKneePoint=[LKneePointX LKneePointY];
+    
+    
+%Calculate Pitch
+%This was done to confirm that our roll calculations are accurately
+%reflecting roll excursion, because we know pitch from our lateral view. 
+%    SegVectorPlastL = [(AnteriorPlastronX - PosteriorPlastronX) (AnteriorPlastronY - PosteriorPlastronY)];
+%    SegVectorPlastLX=SegVectorPlastL(:,1);
+%    SegVectorPlastLY=SegVectorPlastL(:,2);
+%    MagSegVectorPlastL=sqrt(SegVectorPlastLX.^2 +SegVectorPlastLY.^2);
+%	MaxMagSegVectorPlastL=max(MagSegVectorPlastL);
+%    CosPitch=MagSegVectorPlastL./MaxMagSegVectorPlastL;
+%    Pitch=(acosd(CosPitch));
+
+    
+    %% Calculate Roll
+    %% Right now this is calculating roll based off of the entire trial,
+    % so all values reported are relative to the overall least rolled
+    % position. 
+    
+    SegVectorPlastW=[(RShoulderX-LShoulderX) (RShoulderY-LShoulderY)];
+    SegVectorPlastWX=SegVectorPlastW(:,1);
+    SegVectorPlastWY=SegVectorPlastW(:,2);
+    MagSegVectorPlast=sqrt(SegVectorPlastWX.^2+SegVectorPlastWY.^2);
+    MaxMagSegVectorPlast=max(MagSegVectorPlast); %This variable is the maximum width of the plastron in the cycle, which we can use for calculating roll
+    CosRoll=MagSegVectorPlast./MaxMagSegVectorPlast;  
+    Roll=(acos(CosRoll)).*RAD2DEG;
+    
+    
+    [numpts,numcols]=size(Roll);
+    disp 'All data will be smoothed using GCV, quintic spline, and interpolated to 101 points'
+
+    
+    
+    %------ SPECIFYING CYCLES ------
+disp(' ')
+disp(' ')
+
+
+for p=1:1:cycles
+    
+disp(' ');
+disp('Start & end frames for');disp(' ');disp(VenDigDataName(1:9));
+disp(' ');disp('Ventral Cycle #');disp(' ');disp(p);
+disp(' ')
+
+CycleStart=eval(strcat('cut',num2str(p)))
+CycleEnd=eval(strcat('cut',num2str((p+1))))
+
+pause(2.5)
+
+CycleStartADJ=CycleStart-startframe+1;
+CycleEndADJ=CycleEnd-startframe+1;
+    
+disp ' '
+disp 'Now defining new matrices'
+disp ' '
+
+%------ DEFINE NEW MATRICES TO BE SMOOTHED THEN OUTPUT ------
+
+RollCycle=Roll(CycleStartADJ:CycleEndADJ,:);
+%PitchCycle=Pitch(CycleStartADJ:CycleEndADJ,:);
+
+
+disp ' '
+disp 'Now Smoothing Cycle Matrices'
+disp ' '
+
+%------ SMOOTH NEW MATRICES TO BE OUTPUT FOR THE CYCLE ------
+[fdata,errcode,work]=gcvsplW(RollCycle,2,3,0,0,101);
+RollCycleGCV=fdata;
+
+%[fdata,errcode,work]=gcvsplW(PitchCycle,2,3,0,0,101);
+%PitchCycleGCV=fdata;
+
+
+    
+    
+    
+    
+    
+    disp ' '
+    disp 'Now Saving Trial Data'
+    disp ' '
+
+    FileSaveName=VenDigDataName(1:8);
+    FileSaveName=strcat(FileSaveName,'_roll','_Cycle_',num2str(p),'.xlsx');
+    N=FileSaveName;
+
+  header='This is smoothed kinematic data generated by Roll2D';
+  colnames={'Roll'};
+  xlswrite([N],RollCycleGCV);
+  
+  
+  disp 'Smoothed Files Created & Saved'
+
+
+ 
+ 
+ 
+end
+ 
+ 
+
+%%%%%%%
+
+elseif choice == 2 %refresh
+    clc
+    clear
+    No_Keel_Roll
+  
+
+
+end
+
+end

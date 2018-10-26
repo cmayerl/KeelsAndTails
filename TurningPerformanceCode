@@ -1,0 +1,832 @@
+%This is information for calculating maneuverability
+%and 2d kinematics
+%There are two primariy goals:
+%1 - calculated maneuverability by splining 100 points along shell
+%2 - calculate general kinematics of each limb
+
+
+
+
+RAD2DEG=57.2958;
+DEG2RAD=pi/180;
+
+CalibL=0.1175;
+%CalibL is the length of the calibration box or whatever you are using to calibrate.  
+
+choice=1;
+h=1;
+begintime=clock;
+
+while choice>0
+disp(' ')
+disp(' ')
+disp(' ')
+disp(' ')
+disp('************ Welcome to turtle maneuverability ************')
+disp('                       (2D Kinematic calculations)  ')
+disp(' ')
+disp('This program is the most up to date version as of Sept 23 2016')
+disp(' ')
+disp('Do you want to')
+disp(' ')
+disp('0.  Quit')
+disp(' ')
+disp('1.  Calculate kinematics')
+disp(' ')
+disp (' ')
+disp('2.  clear and restart')
+disp(' ')
+
+
+choice=input('?  ');
+disp(' ')
+disp(' ')
+
+if choice==1  %Load camera calibration data and digitized coordinate files and calculate kinematics
+%------ Loading digitized file ------
+[VenDigDataName,VenDigDataPath]=uigetfile('xypts.csv','Find Your Digitized Data from Ventral View','xypts.csv');
+cd(VenDigDataPath);
+VenDigDataPreMatrix=csvread(VenDigDataName,1,0);
+    for TotalVenCols=1:1:32 %40 here because there are 20 points in maneuver file
+    VenDigDataMatrix(:,TotalVenCols)=VenDigDataPreMatrix(:,TotalVenCols);
+    end    
+%------ Done Loading digitized file ------
+
+%-------------Check for NaN--------------------------------
+NaNCheckVenDig=find(isnan(VenDigDataMatrix));
+
+if NaNCheckVenDig>0
+%    disp('Ventral Coordinate file is digitized incorrectly!');beep;
+    beep;
+    Venmsgbox=msgbox('Ventral Coordinate file Invalid','You Digitized Wrong! Be More Careful Next Time Buddy!','warn');
+    uiwait(Venmsgbox);
+else 
+    disp('Ventral Coordinate file is valid and loaded')
+end
+
+pause(0.75)
+%--------------End Check for NaN--------------------------- 
+
+%------Which turtle? - This determines the carapace length to use---------
+ clc
+     disp(' ')
+
+        choice=VenDigDataName(1,1:4);
+        if choice=='cp01'%1  %Cp01
+            CL=0.0993; turtle='CP01';
+        elseif choice=='cp02'%2  %Cp02
+            CL=0.1225; turtle='CP02';
+        elseif choice=='cp04'%3  %Cp04
+            CL=0.1127; turtle='CP04';
+        elseif choice=='cp05'%4  %Cp05
+            CL=0.1375; turtle='Cp05';
+        end
+   disp(strcat('You are working on  ',turtle));
+   
+   BL=CL;
+   
+   %These are the files we will need. 
+   %The actual code here will need edited. 
+       if VenDigDataName(1,1:10)=='cp02m4k01v';day=1;x=0;startframe=1;endframe=29;cycles=1;cut1=1;cut2=29;
+   elseif VenDigDataName(1,1:10)=='cp02m4k02v';day=1;x=0;startframe=1;endframe=32;cycles=1;cut1=1;cut2=32;
+   elseif VenDigDataName(1,1:10)=='cp02m4k03v';day=1;x=0;startframe=1;endframe=32;cycles=1;cut1=1;cut2=35;
+   elseif VenDigDataName(1,1:10)=='cp02m4k04v';day=1;x=0;startframe=1;endframe=35;cycles=1;cut1=1;cut2=35;
+   elseif VenDigDataName(1,1:10)=='cp02m4k05v';day=1;x=0;startframe=1;endframe=38;cycles=1;cut1=1;cut2=38;
+   elseif VenDigDataName(1,1:10)=='cp02m4k06v';day=1;x=0;startframe=1;endframe=29;cycles=1;cut1=1;cut2=29;
+   elseif VenDigDataName(1,1:10)=='cp02m4k07v';day=1;x=0;startframe=1;endframe=30;cycles=1;cut1=1;cut2=30;
+   elseif VenDigDataName(1,1:10)=='cp02m4k09v';day=1;x=0;startframe=1;endframe=32;cycles=1;cut1=1;cut2=32;
+   elseif VenDigDataName(1,1:10)=='cp02m4k10v';day=1;x=0;startframe=1;endframe=29;cycles=1;cut1=1;cut2=29;
+   elseif VenDigDataName(1,1:10)=='cp02m4k11v';day=1;x=0;startframe=1;endframe=29;cycles=1;cut1=1;cut2=29;
+   elseif VenDigDataName(1,1:10)=='cp02m4k12v';day=1;x=0;startframe=1;endframe=31;cycles=1;cut1=1;cut2=31;
+   elseif VenDigDataName(1,1:10)=='cp02m4k13v';day=1;x=0;startframe=1;endframe=26;cycles=1;cut1=1;cut2=26;
+   elseif VenDigDataName(1,1:10)=='cp02m4k14v';day=1;x=0;startframe=1;endframe=31;cycles=1;cut1=1;cut2=31;
+   elseif VenDigDataName(1,1:10)=='cp02m4k16v';day=1;x=0;startframe=1;endframe=31;cycles=1;cut1=1;cut2=31;
+   elseif VenDigDataName(1,1:10)=='cp04m4k01v';day=1;x=0;startframe=1;endframe=32;cycles=1;cut1=1;cut2=32;
+   elseif VenDigDataName(1,1:10)=='cp04m4k02v';day=1;x=0;startframe=1;endframe=31;cycles=1;cut1=1;cut2=31;
+   elseif VenDigDataName(1,1:10)=='cp04m4k03v';day=1;x=0;startframe=1;endframe=30;cycles=1;cut1=1;cut2=30;
+   elseif VenDigDataName(1,1:10)=='cp04m4k04v';day=1;x=0;startframe=1;endframe=29;cycles=1;cut1=1;cut2=29;
+   elseif VenDigDataName(1,1:10)=='cp04m4k07v';day=1;x=0;startframe=1;endframe=34;cycles=1;cut1=1;cut2=34;
+   elseif VenDigDataName(1,1:10)=='cp04m4k08v';day=1;x=0;startframe=1;endframe=29;cycles=1;cut1=1;cut2=29;
+   elseif VenDigDataName(1,1:10)=='cp04m4k09v';day=1;x=0;startframe=1;endframe=26;cycles=1;cut1=1;cut2=26;
+   elseif VenDigDataName(1,1:10)=='cp04m4k10v';day=1;x=0;startframe=1;endframe=37;cycles=1;cut1=1;cut2=37;
+   elseif VenDigDataName(1,1:10)=='cp04m4k11v';day=1;x=0;startframe=1;endframe=36;cycles=1;cut1=1;cut2=36;
+   elseif VenDigDataName(1,1:10)=='cp04m4k12v';day=1;x=0;startframe=1;endframe=26;cycles=1;cut1=1;cut2=26;
+   elseif VenDigDataName(1,1:10)=='cp04m4k13v';day=1;x=0;startframe=1;endframe=33;cycles=1;cut1=1;cut2=33;
+   elseif VenDigDataName(1,1:10)=='cp04m4k15v';day=1;x=0;startframe=1;endframe=39;cycles=1;cut1=1;cut2=39;
+   elseif VenDigDataName(1,1:10)=='cp04m4k16v';day=1;x=0;startframe=1;endframe=30;cycles=1;cut1=1;cut2=30;
+   elseif VenDigDataName(1,1:10)=='cp05m4k01v';day=1;x=0;startframe=1;endframe=41;cycles=1;cut1=1;cut2=41;
+   elseif VenDigDataName(1,1:10)=='cp05m4k02v';day=1;x=0;startframe=1;endframe=30;cycles=1;cut1=1;cut2=30;
+   elseif VenDigDataName(1,1:10)=='cp05m4k04v';day=1;x=0;startframe=1;endframe=43;cycles=1;cut1=1;cut2=43;
+   elseif VenDigDataName(1,1:10)=='cp05m4k06v';day=1;x=0;startframe=1;endframe=38;cycles=1;cut1=1;cut2=38;
+   elseif VenDigDataName(1,1:10)=='cp05m4k07v';day=1;x=0;startframe=1;endframe=37;cycles=1;cut1=1;cut2=37;
+   elseif VenDigDataName(1,1:10)=='cp05m4k08v';day=1;x=0;startframe=1;endframe=32;cycles=1;cut1=1;cut2=32;
+   elseif VenDigDataName(1,1:10)=='cp05m4k10v';day=1;x=0;startframe=1;endframe=45;cycles=1;cut1=1;cut2=45;
+   elseif VenDigDataName(1,1:10)=='cp05m4k11v';day=1;x=0;startframe=1;endframe=42;cycles=1;cut1=1;cut2=42;
+   elseif VenDigDataName(1,1:10)=='cp05m4k12v';day=1;x=0;startframe=1;endframe=36;cycles=1;cut1=1;cut2=36;
+   elseif VenDigDataName(1,1:10)=='cp05m4k13v';day=1;x=0;startframe=1;endframe=33;cycles=1;cut1=1;cut2=33;
+   elseif VenDigDataName(1,1:10)=='cp05m4k14v';day=1;x=0;startframe=1;endframe=37;cycles=1;cut1=1;cut2=37;
+   elseif VenDigDataName(1,1:10)=='cp05m4k15v';day=1;x=0;startframe=1;endframe=35;cycles=1;cut1=1;cut2=35;
+   elseif VenDigDataName(1,1:10)=='cp05m4k16v';day=1;x=0;startframe=1;endframe=19;cycles=1;cut1=1;cut2=19;
+   elseif VenDigDataName(1,1:10)=='cp05m4k19v';day=1;x=0;startframe=1;endframe=34;cycles=1;cut1=1;cut2=34; 
+   end
+ 
+%------ Load calibration data ------
+    %framerate=input('Enter EFFECTIVE framing rate correcting for skipped frames (fr/sec):  ');
+   framerate=100;
+   timeperframe=(1/framerate);
+   disp(' ')
+   clc
+   disp('Framerate in code is 100fps - if this is not right, adjust it in the code')
+   disp(' ')
+   disp(' ')
+   pause(0.75)
+   disp(' ')
+   
+ %What calibration?
+        if day==1  
+            LatcalName='Day1LatCalxypts.csv';VentcalName='Day1VenCalxypts.csv';filmday='Filming Day #1';
+        end
+
+Latcal=csvread(LatcalName,1,0,[1,0,1,3]);
+Ventcal=csvread(VentcalName,1,0,[1,0,1,3]);
+clc
+disp(' ')
+disp('Digitized Coordinates and Calibration loaded for:')
+disp(' ')
+disp(turtle)
+disp(' ')
+disp(filmday)
+pause(0.5)
+
+
+    VENxcaldiff=Ventcal(1,3)-Ventcal(1,1);
+    VENycaldiff=Ventcal(1,4)-Ventcal(1,2);
+    VENpixeldist=sqrt((VENxcaldiff^2)+(VENycaldiff^2));
+    VENVideoXYCal=CalibL./VENpixeldist; %multiply pixel values by this conversion factor to get meters
+
+    LATxcaldiff=Latcal(1,3)-Latcal(1,1);
+    LATycaldiff=Latcal(1,4)-Latcal(1,2);
+    LATpixeldist=sqrt((LATxcaldiff^2)+(LATycaldiff^2));
+    LATVideoXYCal=CalibL./LATpixeldist; %multiply pixel values by this conversion factor to get meters
+%------ Done Loading Calibration ------
+
+%set coordinate data
+coorddata=VenDigDataMatrix;
+
+for m=1:2:31 
+        coorddata(:,m)=coorddata(:,m)-Ventcal(1,1);
+    end
+   
+    for m=2:2:32
+        coorddata(:,m)=coorddata(:,m)-Ventcal(1,2);
+    end
+   
+    
+%------ SPECIFY LENGTH OF WHOLE SEQUENCE TO PROCESS ------
+    %Above rows and columns defines size of coorddata
+coorddata=coorddata(startframe:endframe,:);
+disp(' ')
+disp(' ')
+disp('Coordinate matrix has been reconfigured to use frame');disp(' '); ...
+    disp(startframe);disp('to');disp(' ');disp(endframe);disp('to calculate values for the whole trial sequence');
+pause(2.5)
+[rows,columns]=size(coorddata); %gets new size of coorddata
+
+%------ Calculate the COR position - this option copied from centrotAngieRevisedSAT
+
+%%% Generate completely interpolated matrix
+interpolatedmatrix=ones(rows,200);
+interpolatedmatrix(:,1)=coorddata(:,3);
+interpolatedmatrix(:,2)=coorddata(:,4);
+interpolatedmatrix(:,199)=coorddata(:,5);	
+interpolatedmatrix(:,200)=coorddata(:,6);
+
+Xmultiplier=((coorddata(:,5)-coorddata(:,3))/99);
+Ymultiplier=((coorddata(:,6)-coorddata(:,4))/99);
+
+for v=(3:2:197)
+    interpolatedmatrix(:,v)=Xmultiplier+interpolatedmatrix(:,v-2);
+end
+
+for vv=(4:2:198)
+    interpolatedmatrix(:,vv)=Ymultiplier+interpolatedmatrix(:,vv-2);
+end
+
+%%% Designate points (x & y coords) from interpolated matrix and calibrate to meters
+
+for i=1:100 %Creates x-coordinates for 100 points
+    temp1=['XPoint', int2str(i), '=interpolatedmatrix(:,i*2-1).*VENVideoXYCal'];
+    eval(temp1);
+end
+
+for i=1:100 %Creates y-coordinates for 100 points 
+    temp2=['YPoint', int2str(i), '=interpolatedmatrix(:,i*2).*VENVideoXYCal'];
+    eval(temp2);
+end
+
+clc %to clear the window of the huge matrices above
+
+AllPointsXY=[XPoint1 YPoint1 XPoint2 YPoint2 XPoint3 YPoint3 XPoint4 YPoint4 XPoint5 YPoint5 XPoint6 YPoint6 XPoint7 YPoint7 XPoint8 YPoint8 XPoint9 YPoint9 XPoint10 YPoint10... 
+    XPoint11 YPoint11 XPoint12 YPoint12 XPoint13 YPoint13 XPoint14 YPoint14 XPoint15 YPoint15 XPoint16 YPoint16 XPoint17 YPoint17 XPoint18 YPoint18 XPoint19 YPoint19 XPoint20 YPoint20...
+    XPoint21 YPoint21 XPoint22 YPoint22 XPoint23 YPoint23 XPoint24 YPoint24 XPoint25 YPoint25 XPoint26 YPoint26 XPoint27 YPoint27 XPoint28 YPoint28 XPoint29 YPoint29 XPoint30 YPoint30...
+    XPoint31 YPoint31 XPoint32 YPoint32 XPoint33 YPoint33 XPoint34 YPoint34 XPoint35 YPoint35 XPoint36 YPoint36 XPoint37 YPoint37 XPoint38 YPoint38 XPoint39 YPoint39 XPoint40 YPoint40...
+    XPoint41 YPoint41 XPoint42 YPoint42 XPoint43 YPoint43 XPoint44 YPoint44 XPoint45 YPoint45 XPoint46 YPoint46 XPoint47 YPoint47 XPoint48 YPoint48 XPoint49 YPoint49 XPoint50 YPoint50...
+    XPoint51 YPoint51 XPoint52 YPoint52 XPoint53 YPoint53 XPoint54 YPoint54 XPoint55 YPoint55 XPoint56 YPoint56 XPoint57 YPoint57 XPoint58 YPoint58 XPoint59 YPoint59 XPoint60 YPoint60...
+    XPoint61 YPoint61 XPoint62 YPoint62 XPoint63 YPoint63 XPoint64 YPoint64 XPoint65 YPoint65 XPoint66 YPoint66 XPoint67 YPoint67 XPoint68 YPoint68 XPoint69 YPoint69 XPoint70 YPoint70...
+    XPoint71 YPoint71 XPoint72 YPoint72 XPoint73 YPoint73 XPoint74 YPoint74 XPoint75 YPoint75 XPoint76 YPoint76 XPoint77 YPoint77 XPoint78 YPoint78 XPoint79 YPoint79 XPoint80 YPoint80...
+    XPoint81 YPoint81 XPoint82 YPoint82 XPoint83 YPoint83 XPoint84 YPoint84 XPoint85 YPoint85 XPoint86 YPoint86 XPoint87 YPoint87 XPoint88 YPoint88 XPoint89 YPoint89 XPoint90 YPoint90...
+    XPoint91 YPoint91 XPoint92 YPoint92 XPoint93 YPoint93 XPoint94 YPoint94 XPoint95 YPoint95 XPoint96 YPoint96 XPoint97 YPoint97 XPoint98 YPoint98 XPoint99 YPoint99 XPoint100 YPoint100];
+
+%%% Start of key point definitions
+
+NoseX=coorddata(:,1).*VENVideoXYCal;
+NoseY=coorddata(:,2).*VENVideoXYCal;
+PlastronAnt1X=coorddata(:,3).*VENVideoXYCal;
+PlastronAnt1Y=coorddata(:,4).*VENVideoXYCal;
+PlastronPostX=coorddata(:,5).*VENVideoXYCal;
+PlastronPostY=coorddata(:,6).*VENVideoXYCal;
+TailX=coorddata(:,7).*VENVideoXYCal;
+TailY=coorddata(:,8).*VENVideoXYCal;
+RShoulderX=coorddata(:,9).*VENVideoXYCal;
+RShoulderY=coorddata(:,10).*VENVideoXYCal;
+RElbowX=coorddata(:,11).*VENVideoXYCal;
+RElbowY=coorddata(:,12).*VENVideoXYCal;
+RWristX=coorddata(:,13).*VENVideoXYCal;
+RWristY=coorddata(:,14).*VENVideoXYCal;
+LShoulderX=coorddata(:,15).*VENVideoXYCal;
+LShoulderY=coorddata(:,16).*VENVideoXYCal;
+LElbowX=coorddata(:,17).*VENVideoXYCal;
+LElbowY=coorddata(:,18).*VENVideoXYCal;
+LWristX=coorddata(:,19).*VENVideoXYCal;
+LWristY=coorddata(:,20).*VENVideoXYCal;
+RHipX=coorddata(:,21).*VENVideoXYCal;
+RHipY=coorddata(:,22).*VENVideoXYCal;
+RKneeX=coorddata(:,23).*VENVideoXYCal;
+RKneeY=coorddata(:,24).*VENVideoXYCal;
+RAnkleX=coorddata(:,25).*VENVideoXYCal;
+RAnkleY=coorddata(:,26).*VENVideoXYCal;
+LHipX=coorddata(:,27).*VENVideoXYCal;
+LHipY=coorddata(:,28).*VENVideoXYCal;
+LKneeX=coorddata(:,29).*VENVideoXYCal;
+LKneeY=coorddata(:,30).*VENVideoXYCal;
+LAnkleX=coorddata(:,31).*VENVideoXYCal;
+LAnkleY=coorddata(:,32).*VENVideoXYCal;
+
+Nose=[NoseX NoseY];
+PlastronAnt=[PlastronAnt1X PlastronAnt1Y];
+PlastronPost=[PlastronPostX PlastronPostY];
+Tail=[TailX TailY];
+RShoulder=[RShoulderX RShoulderY];
+RElbow=[RElbowX RElbowY];
+RWrist=[RWristX RWristY];
+LShoulder=[LShoulderX LShoulderY];
+LElbow=[LElbowX LElbowY];
+LWrist=[LWristX LWristY];
+RHip=[RHipX RHipY];
+RKnee=[RKneeX RKneeY];
+RAnkle=[RAnkleX RAnkleY];
+LHip=[LHipX LHipY];
+LKnee=[LKneeX LKneeY];
+LAnkle=[LAnkleX LAnkleY];
+
+%%% Calculate COR (point of smallest cumulative displacement)  
+
+DispMatA=ones(rows-1,200);
+
+for p=2:1:rows
+    DispMatA=AllPointsXY(p,:)-AllPointsXY(p-1,:);
+    DispMatXvY(p-1,:)=DispMatA;%XY displacement matrix in meters
+end
+
+DispMatXvYsq=DispMatXvY.^2;%generate matrix of summed xy squared displacements
+for a=1:1:100
+    DispMatNetSum(:,a)=DispMatXvYsq(:,a*2-1)+DispMatXvYsq(:,a*2);
+end
+
+
+DispMatNet=DispMatNetSum.^0.5;% matrix of square roots of sum of squares = actual displacements
+DispMatNetCum=sum(DispMatNet);
+[MinSumPointVal,MinSumPointIndex] = min(DispMatNetCum); %returns value and index (matrix position) of minimum displacement point
+DispMatNetColInit=DispMatNet(:,MinSumPointIndex);
+[rows2,columns2]=size(DispMatNetColInit);
+DispMatNetCol=zeros(rows2+1,1);
+
+for q2=2:1:(rows2+1)
+    DispMatNetCol(q2,:)=DispMatNetColInit(q2-1,:);%cumulative displacement matrix in meters
+end
+
+DispMatNetColFinal=cumsum(DispMatNetCol); %Matrix of cumulative displacement in meters
+DispMatNetColFinalBL=DispMatNetColFinal.*(1/BL); %Matrix of cumulative displacement in BL
+[rowfordisp,colfordisp]=size(DispMatNetColFinalBL);
+CumulativeDispBL=DispMatNetColFinalBL(rowfordisp,1); %Last value in matrix representing cumulative displacement (should be at least 3BL to use the trial)
+CumulativeDisp=DispMatNetColFinal(rowfordisp,1); %Cumulative displacement in meters
+
+%Calculate Velocity for Entire Sequence
+[fdata,errcode,work]=gcvsplW(DispMatNetColFinal,2,3,0,1,rowfordisp);
+VelAllGCV=fdata; %Smoothed velocity
+VelAllGCV=VelAllGCV.*framerate; %Instantaneous Velocity in meters per second
+VelAllGCVBL=VelAllGCV./BL; %Instantaneous velocity in BL/sec
+
+MeanVelAllGCV=mean(VelAllGCV); %Mean velocity (m/s) for entire sequence
+MeanVelAllGCVBL=mean(VelAllGCVBL); %Mean velocity (BL/s) for entire sequence
+
+
+%%% Calculate the COR coordinates through sequence -(find both x & y columns of original data for assigned COR)
+
+valy=MinSumPointIndex*2;
+valx=valy-1;
+CofRcol1=interpolatedmatrix(:,valx); %finds column of original x-coordinate data
+CofRcol2=interpolatedmatrix(:,valy); %finds column of original y-coordinate data
+CofRcol1M=CofRcol1.*VENVideoXYCal; %converts to meters, this is the COR X through time
+CofRcol2M=CofRcol2.*VENVideoXYCal; %converts to meters, this is the COR Y through time
+CORX=CofRcol1M;
+CORY=CofRcol2M;
+CORXYMatrix=[CORX CORY];
+
+%%% Calculates linear regression and correlation coefficient (r) for COR coord data (X=CofRcol1M; Y=CofRcol2M)
+
+rfromcorrelation=corrcoef(CofRcol1M,CofRcol2M);
+disp(' ')
+rsquare=rfromcorrelation(1,2)^2; % you see this and should write it down
+
+%%% Generates equation for line of best fit through data points
+
+corlineequation=polyfit(CofRcol1M,CofRcol2M,1);
+yintercept=corlineequation(2);
+slope=corlineequation(1);
+fit=yintercept+slope*CofRcol1M;
+%     disp('COR (% of body length) = ')
+%     disp(MinSumPointIndex)
+
+%segment vectors
+SegVectorRFemur=RHip-RKnee;
+SegVectorLFemur=LHip-LKnee;
+SegVectorRHum=RShoulder-RElbow;
+SegVectorLHum=LShoulder-LElbow;
+SegVectorHead=PlastronAnt-Nose;
+SegVectorPlastron=PlastronPost-PlastronAnt;
+%Not calculating knee or elbow angles here, but we have the digitized data
+%to do it if we want to. 
+PlusXVector=[1 0];
+
+
+%Make matrix of init values of plastron orientation for comparison to angle of plastron through turn
+SegVectorPlastronInitMat=ones(rows,2);
+SegVectorPlastronInit=PlastronPost(1,:)-PlastronAnt(1,:);
+SegVectorPlastronInitX=SegVectorPlastronInit(1,1);
+SegVectorPlastronInitY=SegVectorPlastronInit(1,2);
+
+for q=1:1:rows
+    SegVectorPlastronInitMat(q,1)=SegVectorPlastronInitX;
+    SegVectorPlastronInitMat(q,2)=SegVectorPlastronInitY;
+
+end
+
+%segment angle calculations
+
+    dotRhipangx=wdot(SegVectorPlastron,SegVectorRFemur);
+    MagSegVectorRhipang1=vlength(SegVectorPlastron);
+    MagSegVectorRhipang2=vlength(SegVectorRFemur);
+    MagSegVectorRHipAng=MagSegVectorRhipang1.*MagSegVectorRhipang2;
+    CosdotRHipAng=dotRhipangx./MagSegVectorRHipAng;
+    DotRHipAng=(acos(CosdotRHipAng)).*RAD2DEG;
+
+    dotLhipangx=wdot(SegVectorPlastron,SegVectorLFemur);
+    MagSegVectorLhipang1=vlength(SegVectorPlastron);
+    MagSegVectorLhipang2=vlength(SegVectorLFemur);
+    MagSegVectorLHipAng=MagSegVectorLhipang1.*MagSegVectorLhipang2;
+    CosdotLHipAng=dotLhipangx./MagSegVectorLHipAng;
+    DotLHipAng=(acos(CosdotLHipAng)).*RAD2DEG;
+
+    dotRshouldangx=wdot(SegVectorPlastron,SegVectorRHum);
+    MagSegVectorRshouldang1=vlength(SegVectorPlastron);
+    MagSegVectorRshouldang2=vlength(SegVectorRHum);
+    MagSegVectorRShouldAng=MagSegVectorRshouldang1.*MagSegVectorRshouldang2;
+    CosdotRShouldAng=dotRshouldangx./MagSegVectorRShouldAng;
+    DotRShouldAng=(acos(CosdotRShouldAng)).*RAD2DEG;
+
+    dotLshouldangx=wdot(SegVectorPlastron,SegVectorLHum);
+    MagSegVectorLshouldang1=vlength(SegVectorPlastron);
+    MagSegVectorLshouldang2=vlength(SegVectorLHum);
+    MagSegVectorLShouldAng=MagSegVectorLshouldang1.*MagSegVectorLshouldang2;
+    CosdotLShouldAng=dotLshouldangx./MagSegVectorLShouldAng;
+    DotLShouldAng=(acos(CosdotLShouldAng)).*RAD2DEG;
+
+    dotRotangx=wdot(SegVectorPlastron,SegVectorPlastronInitMat);
+    MagSegVectorRotang1=vlength(SegVectorPlastron);
+    MagSegVectorRotang2=vlength(SegVectorPlastronInitMat);
+    MagSegVectorRotAng=MagSegVectorRotang1.*MagSegVectorRotang2;
+    CosdotRotAng=dotRotangx./MagSegVectorRotAng;
+    DotRotAng=(acos(CosdotRotAng)).*RAD2DEG;
+
+
+%Translate segment vectors to origin so 1 point coincides with 1 point of normal vectors, 
+%allowing rotation of triangles of points
+
+PlastronPostTrans=PlastronPost-PlastronPost;
+PlastronAntTrans=PlastronAnt-PlastronPost;
+SegVectorPlastronTrans=PlastronAntTrans-PlastronPostTrans;
+
+
+%Remaining joint angle calculations based on rotations of triangles of points so that one segment coincides with x-axis
+%This allows identification of angles as + or - based on position of 3rd point (above or below x-axis, i.e. +y or -y)
+
+%Head angle calculations
+
+%shift so that back plastron point is at origin
+PlastronPostShift=PlastronPost-PlastronPost;
+PlastronAntShift=PlastronAnt-PlastronPost;
+NoseShift=Nose-PlastronPost;
+
+
+%Rotate points so that plastron segment aligned with x axis in XY plane
+%(a) calc rotation angle (thetaxy)
+
+for u=1:1:rows
+    thetaxyPlastBack=0;
+    thetaxyPlastFront=atan2(PlastronAntShift(u,2),PlastronAntShift(u,1));
+    thetaxyNose=atan2(NoseShift(u,2),NoseShift(u,1));
+    thetaxyPlastFrontmat(u,1)=thetaxyPlastFront;
+    thetaxyNosemat(u,1)=thetaxyNose;
+
+end
+
+    %(b) calculate new x & y coords using rotation angle thetaxyPlastFront (make y=0 for PlastFront)
+
+for u1=1:1:rows
+    costhetaxyPlastFront=cos(thetaxyPlastFrontmat(u1,1));
+    sinthetaxyPlastFront=sin(thetaxyPlastFrontmat(u1,1));
+    xstarPlastFront=(PlastronAntShift(u1,1)*costhetaxyPlastFront)+(PlastronAntShift(u1,2)*sinthetaxyPlastFront);
+    ystarPlastFront=(-1*(PlastronAntShift(u1,1)*sinthetaxyPlastFront))+(PlastronAntShift(u1,2)*costhetaxyPlastFront);
+    xstarNose=(NoseShift(u1,1)*costhetaxyPlastFront)+(NoseShift(u1,2)*sinthetaxyPlastFront);
+    ystarNose=(-1*(NoseShift(u1,1)*sinthetaxyPlastFront))+(NoseShift(u1,2)*costhetaxyPlastFront);
+    PlastFrontrot1(u1,1)=xstarPlastFront;
+    PlastFrontrot1(u1,2)=ystarPlastFront;
+    Noserot1(u1,1)=xstarNose;
+    Noserot1(u1,2)=ystarNose;
+end
+
+%calculate angle between plastron and Head vectors and check for + or -
+
+    PlastRotVectorMat=PlastronPostShift-PlastFrontrot1;
+    HeadRotVectorMat=PlastFrontrot1-Noserot1;
+    HeadRotVectorMatY=HeadRotVectorMat(:,2);
+    Noserot1Y=Noserot1(:,2);
+    ynegNose=find(Noserot1Y>0);
+
+for u4=1:1:rows
+    PlastRotVectorA=PlastRotVectorMat(u4,:);
+    HeadRotVectorA=HeadRotVectorMat(u4,:);
+    dothead=wdot(PlastRotVectorA,HeadRotVectorA);
+    MagSegVectorHeadAngRot1=vlength(PlastRotVectorA);
+    MagSegVectorHeadAngRot2=vlength(HeadRotVectorA);
+    MagSegVectorHeadAngRot=MagSegVectorHeadAngRot1.*MagSegVectorHeadAngRot2;
+    Cosdothead=dothead./MagSegVectorHeadAngRot;
+    DotHeadAngA=(acos(Cosdothead)).*RAD2DEG;
+    DotHeadAngInit(u4,1)=DotHeadAngA;
+
+end
+
+DotHeadAngRot=DotHeadAngInit;
+DotHeadAngRot(ynegNose)=(-1)*DotHeadAngRot(ynegNose);
+
+
+%Right arm angle calculations
+
+%shift arm points relative to back plastron point at origin
+PlastronPostShift=PlastronPost-PlastronPost;
+PlastronAntShift=PlastronAnt-PlastronPost;
+RShoulderShift=RShoulder-PlastronPost;
+RElbowPointShift=RElbow-PlastronPost;
+RShoulderShift=RShoulder-RShoulder;
+RElbowPointShift=RElbow-RShoulder;
+
+%Rotate points so that plastron segment aligned with x axis in XY plane
+%(a) calc rotation angle (thetaxy)
+
+for u5=1:1:rows
+    thetaxyPlastBack=0;
+    thetaxyPlastFront=atan2(PlastronAntShift(u5,2),PlastronAntShift(u5,1));
+    %thetaxyRShould=atan2(RShoulderShift(u5,2),RShoulderShift(u5,1));
+    thetaxyRElbow=atan2(RElbowPointShift(u5,2),RElbowPointShift(u5,1));
+    thetaxyPlastFrontmat(u5,1)=thetaxyPlastFront;
+    %thetaxyRShouldmat(u5,1)=thetaxyRShould;
+    thetaxyRElbowmat(u5,1)=thetaxyRElbow;
+
+end
+
+    %(b) calculate new x & y coords using rotation angle thetaxyPlastFront (make y=0 for PlastFront)
+
+for u6=1:1:rows
+    costhetaxyPlastFront=cos(thetaxyPlastFrontmat(u6,1));
+    sinthetaxyPlastFront=sin(thetaxyPlastFrontmat(u6,1));
+    xstarPlastFront=(PlastronAntShift(u6,1)*costhetaxyPlastFront)+(PlastronAntShift(u6,2)*sinthetaxyPlastFront);
+    ystarPlastFront=(-1*(PlastronAntShift(u6,1)*sinthetaxyPlastFront))+(PlastronAntShift(u6,2)*costhetaxyPlastFront);
+    %xstarRShould=(RShoulderShift(u6,1)*costhetaxyPlastFront)+(RShoulderShift(u6,2)*sinthetaxyPlastFront);
+    %ystarRShould=(-1*(RShoulderShift(u6,1)*sinthetaxyPlastFront))+(RShoulderShift(u6,2)*costhetaxyPlastFront);
+    xstarRElbow=(RElbowPointShift(u6,1)*costhetaxyPlastFront)+(RElbowPointShift(u6,2)*sinthetaxyPlastFront);
+    ystarRElbow=(-1*(RElbowPointShift(u6,1)*sinthetaxyPlastFront))+(RElbowPointShift(u6,2)*costhetaxyPlastFront);
+    PlastFrontrot1(u6,1)=xstarPlastFront;
+    PlastFrontrot1(u6,2)=ystarPlastFront;
+    %RShouldrot1(u6,1)=xstarRShould;
+    %RShouldrot1(u6,2)=ystarRShould;
+    RElbowrot1(u6,1)=xstarRElbow;
+    RElbowrot1(u6,2)=ystarRElbow;
+end
+
+%calculate angle between plastron and arm vectors and check for + or -
+
+    PlastRotVectorMat=PlastronPostShift-PlastFrontrot1;
+    %RArmRotVectorMat=RShouldrot1-RElbowrot1;
+    RArmRotVectorMat=RShoulderShift-RElbowrot1;
+    RArmRotVectorMatY=RArmRotVectorMat(:,2);
+    RElbowrot1Y=RElbowrot1(:,2);
+    ynegRElbow=find(RElbowrot1Y<0);
+
+for u10=1:1:rows
+    PlastRotVectorA=PlastRotVectorMat(u10,:);
+    RArmRotVectorA=RArmRotVectorMat(u10,:);
+    dotRArm=wdot(PlastRotVectorA,RArmRotVectorA);
+    MagSegVectorRArmAngRot1=vlength(PlastRotVectorA);
+    MagSegVectorRArmAngRot2=vlength(RArmRotVectorA);
+    MagSegVectorRArmAngRot=MagSegVectorRArmAngRot1.*MagSegVectorRArmAngRot2;
+    CosdotRArm=dotRArm./MagSegVectorRArmAngRot;
+    DotRArmAngA=(acos(CosdotRArm)).*RAD2DEG;
+    DotRArmAngInit(u10,1)=DotRArmAngA;
+
+end
+
+DotRArmAngRot=(-1)*DotRArmAngInit;
+DotRArmAngRot(ynegRElbow)=(-1)*DotRArmAngRot(ynegRElbow);
+
+%Left arm angle calculations
+
+%shift arm points relative to back plastron point at origin
+PlastronPostShift=PlastronPost-PlastronPost;
+PlastronAntShift=PlastronAnt-PlastronPost;
+LShoulderShift=LShoulder-LShoulder;
+LElbowPointShift=LElbow-LShoulder;
+
+%Rotate points so that plastron segment aligned with x axis in XY plane
+%(a) calc rotation angle (thetaxy)
+
+for u7=1:1:rows
+    thetaxyPlastBack=0;
+    thetaxyPlastFront=atan2(PlastronAntShift(u7,2),PlastronAntShift(u7,1));
+    %thetaxyLShould=atan2(LShoulderShift(u7,2),LShoulderShift(u7,1));
+    thetaxyLElbow=atan2(LElbowPointShift(u7,2),LElbowPointShift(u7,1));
+    thetaxyPlastFrontmat(u7,1)=thetaxyPlastFront;
+    %thetaxyLShouldmat(u7,1)=thetaxyLShould;
+    thetaxyLElbowmat(u7,1)=thetaxyLElbow;
+
+end
+
+    %(b) calculate new x & y coords using rotation angle thetaxyPlastFront (make y=0 for PlastFront)
+
+for u8=1:1:rows
+    costhetaxyPlastFront=cos(thetaxyPlastFrontmat(u8,1));
+    sinthetaxyPlastFront=sin(thetaxyPlastFrontmat(u8,1));
+    xstarPlastFront=(PlastronAntShift(u8,1)*costhetaxyPlastFront)+(PlastronAntShift(u8,2)*sinthetaxyPlastFront);
+    ystarPlastFront=(-1*(PlastronAntShift(u8,1)*sinthetaxyPlastFront))+(PlastronAntShift(u8,2)*costhetaxyPlastFront);
+    %xstarLShould=(LShoulderShift(u8,1)*costhetaxyPlastFront)+(LShoulderShift(u8,2)*sinthetaxyPlastFront);
+    %ystarLShould=(-1*(LShoulderShift(u8,1)*sinthetaxyPlastFront))+(LShoulderShift(u8,2)*costhetaxyPlastFront);
+    xstarLElbow=(LElbowPointShift(u8,1)*costhetaxyPlastFront)+(LElbowPointShift(u8,2)*sinthetaxyPlastFront);
+    ystarLElbow=(-1*(LElbowPointShift(u8,1)*sinthetaxyPlastFront))+(LElbowPointShift(u8,2)*costhetaxyPlastFront);
+    PlastFrontrot1(u8,1)=xstarPlastFront;
+    PlastFrontrot1(u8,2)=ystarPlastFront;
+    %LShouldrot1(u8,1)=xstarLShould;
+    %LShouldrot1(u8,2)=ystarLShould;
+    LElbowrot1(u8,1)=xstarLElbow;
+    LElbowrot1(u8,2)=ystarLElbow;
+end
+
+%calculate angle between plastron and Head vectors and check for + or -
+
+    PlastRotVectorMat=PlastronPostShift-PlastFrontrot1;
+    %LArmRotVectorMat=LShouldrot1-LElbowrot1;
+    LArmRotVectorMat=LShoulderShift-LElbowrot1;
+    LArmRotVectorMatY=HeadRotVectorMat(:,2);
+    LElbowrot1Y=LElbowrot1(:,2);
+    ynegLElbow=find(LElbowrot1Y<0);
+
+for u9=1:1:rows
+    PlastRotVectorA=PlastRotVectorMat(u9,:);
+    LArmRotVectorA=LArmRotVectorMat(u9,:);
+    dotLArm=wdot(PlastRotVectorA,LArmRotVectorA);
+    MagSegVectorLArmAngRot1=vlength(PlastRotVectorA);
+    MagSegVectorLArmAngRot2=vlength(LArmRotVectorA);
+    MagSegVectorLArmAngRot=MagSegVectorLArmAngRot1.*MagSegVectorLArmAngRot2;
+    CosdotLArm=dotLArm./MagSegVectorLArmAngRot;
+    DotLArmAngA=(acos(CosdotLArm)).*RAD2DEG;
+    DotLArmAngInit(u9,1)=DotLArmAngA;
+
+end
+
+DotLArmAngRot=DotLArmAngInit;
+DotLArmAngRot(ynegLElbow)=(-1)*DotLArmAngRot(ynegLElbow);
+
+
+%Rspace - see Walker 2000,JEB203:3392
+PlusXP1=[0 0];
+PlusXP2=[1 0];
+PlastronPostShiftF1=PlastronPost(1,:)-PlastronPost(1,:);
+PlastronAntShiftF1=PlastronAnt(1,:)-PlastronPost(1,:);
+
+
+%adjust points you wnat to correct by subtracting matrix of first frame position of back of plastron 
+PlastronPostF1Mat=ones(rows, 2);
+PlastronPostF1Mat(:,1)=PlastronPost(1,1);
+PlastronPostF1Mat(:,2)=PlastronPost(1,2);
+
+Nose2PointShift=Nose-PlastronPostF1Mat;
+RHToePointShift=RAnkle-PlastronPostF1Mat;
+LHToePointShift=LAnkle-PlastronPostF1Mat;
+
+%(a) calc rotation angle (thetaxy) between plastron in first frame and  +x vector
+
+    thetaxyPlastFrontF1=atan2(PlastronAntShiftF1(1,2),PlastronAntShiftF1(1,1));
+
+%(b) calculate new x & y coords for nose and both hind toes using rotation angle thetaxyPlastFrontF1 (make y=0 for PlastFront)
+
+    costhetaxyPlastFrontF1=cos(thetaxyPlastFrontF1);
+    sinthetaxyPlastFrontF1=sin(thetaxyPlastFrontF1);
+
+for k8=1:1:rows
+
+    xstarNose2=(Nose2PointShift(k8,1)*costhetaxyPlastFrontF1)+(Nose2PointShift(k8,2)*sinthetaxyPlastFrontF1);
+    ystarNose2=(-1*(Nose2PointShift(k8,1)*sinthetaxyPlastFrontF1))+(Nose2PointShift(k8,2)*costhetaxyPlastFrontF1);
+    xstarRHToe=(RHToePointShift(k8,1)*costhetaxyPlastFrontF1)+(RHToePointShift(k8,2)*sinthetaxyPlastFrontF1);
+    ystarRHToe=(-1*(RHToePointShift(k8,1)*sinthetaxyPlastFrontF1))+(RHToePointShift(k8,2)*costhetaxyPlastFrontF1);
+    xstarLHToe=(LHToePointShift(k8,1)*costhetaxyPlastFrontF1)+(LHToePointShift(k8,2)*sinthetaxyPlastFrontF1);
+    ystarLHToe=(-1*(LHToePointShift(k8,1)*sinthetaxyPlastFrontF1))+(LHToePointShift(k8,2)*costhetaxyPlastFrontF1);
+    Nose2rot1(k8,1)=xstarNose2;
+    Nose2rot1(k8,2)=ystarNose2;
+    RHToerot1(k8,1)=xstarRHToe;
+    RHToerot1(k8,2)=ystarRHToe;
+    LHToerot1(k8,1)=xstarLHToe;
+    LHToerot1(k8,2)=ystarLHToe;
+end
+
+%put all y values in a single column to determine max & min
+RSpaceCalcMat1=Nose2rot1(:,2);
+RSpaceCalcMat2=RHToerot1(:,2);
+RSpaceCalcMat3=LHToerot1(:,2);
+
+RSpaceCalcMat=cat(1,RSpaceCalcMat1,RSpaceCalcMat2,RSpaceCalcMat3);
+MaxY=max(RSpaceCalcMat);
+MinY=min(RSpaceCalcMat);
+DiffMaxMin=MaxY-MinY;
+RSpaceMeters=0.5*DiffMaxMin
+RSpaceBL=(0.5*DiffMaxMin)/0.175
+
+for p=1
+%------ DEFINE NEW MATRICES TO BE SMOOTHED THEN OUTPUT ------
+DispMatNetColFinalCycle=DispMatNetColFinal(startframe:endframe,:); %Cum Disp meters matrix
+[rowDisp,colDisp]=size(DispMatNetColFinalCycle);
+for j=1:1:rowDisp
+    DispMatNetColFinalCycle(j,1)=DispMatNetColFinalCycle(j,1)-DispMatNetColFinal(startframe,1);
+end
+
+disp ' '
+disp 'Now Smoothing Cycle Matrices'
+disp ' '
+
+%------ SMOOTH NEW MATRICES TO BE OUTPUT FOR THE CYCLE ------
+[fdata,errcode,work]=gcvsplW(DispMatNetColFinalCycle,2,3,0,1,101);
+VelCycleGCV=fdata;
+VelCycleGCV=VelCycleGCV.*framerate; %Instantaneous velocity (m/s)
+VelCycleBLGCV=VelCycleGCV./BL; %Instantaneous velocity (BL/s)
+
+[fdata,errcode,work]=gcvsplW(DispMatNetColFinalCycle,2,3,0,0,101);
+DispMatColFinalCycleGCV=fdata;
+
+DispMatColFinalBLCycleGCV=DispMatColFinalCycleGCV./BL;
+
+[fdata,errcode,work]=gcvsplW(DotRotAng,2,3,0,0,101);
+YawBodyCycleGCV=fdata;
+
+%[fdata,errcode,work]=gcvsplW(YawBodyCycle,2,3,0,1,101); %This is not useful for maneuverability - becuase you're turning the yawbody vector gets messed up.
+%YawVelGCV=fdata;
+%YawVelGCV=YawVelGCV.*framerate; %Instantaneous velocity (deg/s)
+%YawVelGCV=abs(YawVelGCV);
+
+[fdata,errcode,work]=gcvsplW(DotRotAng,2,3,0,1,101); %This is the right way to do it.
+YawVelGCV=fdata;
+YawVelGCV=YawVelGCV.*framerate; %Instantaneous velocity (deg/s)
+YawVelGCV=abs(YawVelGCV);
+
+[fdata,errcode,work]=gcvsplW(DotLArmAngRot,2,3,0,0,101);
+larmCycleGCV=fdata;
+
+%[fdata,errcode,work]=gcvsplW(DotLShouldAng,2,3,0,0,101);
+%larmCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(DotRArmAngRot,2,3,0,0,101);
+rarmCycleGCV=fdata;
+
+%[fdata,errcode,work]=gcvsplW(DotRShouldAng,2,3,0,0,101);
+%rarmCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(DotLHipAng,2,3,0,0,101);
+llegCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(DotRHipAng,2,3,0,0,101);
+rlegCycleGCV=fdata;
+
+%------ SAVING OUTPUT FOR TRIAL------
+disp ' '
+disp 'Now Saving Trial Data'
+disp ' '
+
+FileSaveName=VenDigDataName(1:9);
+FileSaveName=strcat(FileSaveName,'_Kine','.xlsx');
+N=FileSaveName;
+
+sheetnames={'Trial Data','Cycle Data'};
+xlsheets(sheetnames,N);
+warning off MATLAB:xlswrite:AddSheet
+
+
+TrialColNames={'r-squared','Cumulative Disp (BL)','Cumulative Disp (m)',...
+     'Avg Vel (BL/sec)','Avg Vel (m/sec)','Anat Pos VenCOR',...
+     'VenCOR_X','VenCOR_Y'};
+ 
+ xlswrite(N,TrialColNames,'Trial Data','A1');
+ xlswrite(N,rsquare,'Trial Data','A2');
+ xlswrite(N,CumulativeDispBL,'Trial Data','B2');
+ xlswrite(N,CumulativeDisp,'Trial Data','C2');
+ xlswrite(N,MeanVelAllGCVBL,'Trial Data','D2');
+ disp ' '
+ disp '50% Done'
+ disp ' '
+ xlswrite(N,MeanVelAllGCV,'Trial Data','E2');
+ xlswrite(N,MinSumPointIndex,'Trial Data','F2');
+ xlswrite(N,CORXYMatrix,'Trial Data','G2');
+
+ disp ' '
+ disp 'Trial Data Saved'
+ disp ' '
+
+%------ END SAVING FOR TRIAL ------
+ %------ SAVE DATA FOR CYCLE ------
+CycleColNames={'larm','rarm','lleg','rleg',...
+    'Disp (m)','Disp (BL)','Vel (m/s)',....
+    'Vel (BL/s)',...
+    'YawBody', 'absYawVel'};
+
+disp 'Now Saving Cycle Data'
+disp ' '
+disp ' 0% Done'
+xlswrite(N,CycleColNames,'Cycle Data','A1');
+xlswrite(N,larmCycleGCV,'Cycle Data','A2');
+xlswrite(N,rarmCycleGCV,'Cycle Data','B2');
+xlswrite(N,llegCycleGCV,'Cycle Data','C2');
+xlswrite(N,rlegCycleGCV,'Cycle Data','D2');
+disp '25% Done'
+xlswrite(N,DispMatColFinalCycleGCV,'Cycle Data','E2');
+xlswrite(N,DispMatColFinalBLCycleGCV,'Cycle Data','F2');
+xlswrite(N,VelCycleGCV,'Cycle Data','G2');
+xlswrite(N,VelCycleBLGCV,'Cycle Data','H2');
+disp '50% Done'
+xlswrite(N,YawBodyCycleGCV,'Cycle Data','I2');
+disp '75% Done'
+xlswrite(N,YawVelGCV,'Cycle Data', 'J2');
+
+disp ' '
+disp 'Cycle Data Saved'
+disp ' '
+
+%----- END SAVING KINEMATICS DATA -----
+%----- SAVE COR DATA ----- 
+numrows = 1:size(CORX)% creates rows of 0 equal to 
+numrows = numrows.' %transposes to column
+combinedCOR = [numrows, CORXYMatrix]
+M=strcat(VenDigDataName(1:9),'_COR','.csv')
+csvwrite(M, combinedCOR)
+
+
+
+disp ' '
+disp 'If you have more cycles to process, run option 5 to clear and then option 3 again!'
+disp ' '
+disp ' '
+end
+beep
+disp('You are done with this file!!!')
+pause(1)
+    
+
+elseif choice == 2
+ 
+    clc
+    clear
+    disp ' '
+    disp ' '
+    ManCodeSerrated
+    end
+end
+
+
+
+
+

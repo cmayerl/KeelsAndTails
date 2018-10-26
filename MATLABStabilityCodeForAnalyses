@@ -1,0 +1,2673 @@
+%2D Kinematic calculations for turtle stability
+%Gabe finished major revisions on 2-18-07
+%Revised on 4-20-07 (changed to accept data from DLTdataviewer2)
+%Last Revised on 5-11-07 (nocol fixed on lines 91 & 92 to accept DLT... data)
+%Is turtle swimming left-to-right (type "0") or right-to-left (type "2")
+
+RAD2DEG=57.2958;
+DEG2RAD=pi/180;
+CalibL=0.117;
+choice=1;
+h=1;
+begintime=clock;
+
+while choice>0
+disp(' ')
+%disp(' Last modified May 2009  ')
+disp(' ')
+disp('************   Welcome to stability v.7   ************')
+disp('        (2D Stability Kinematics for Turtles)  ')
+disp(' ')
+disp('Program last modified by Angie (May 26, 2009)')
+disp('To run, you must have, smoothing programs, gabang, and Angie_Fig_Close')
+disp(' ')
+disp('Do you want to')
+disp(' ')
+disp('0.  Quit')
+disp(' ')
+disp('1. Criteria check for ventral file')
+disp(' ')
+disp('2. Criteria check for lateral file')
+disp(' ')
+disp('3. Process ventral limb cycle')
+disp(' ')
+disp('4. Process lateral limb cycle')
+disp(' ')
+disp('5. Clear & Restart')
+disp(' ')
+
+choice=input('?  ');
+disp(' ')
+disp(' ')
+
+if choice==1 %1. Criteria check for ventral file
+
+%---------------------------------------------------
+%---------------------------------------------------
+%---------------------------------------------------
+%------ Everything below is the same as in option 3
+%------ Option 3 has the plotting commented out----
+%------ Option 1 does not have saving -------------
+%---------------------------------------------------
+%---------------------------------------------------
+    %------ Loading digitized file ------
+[VenDigDataName,VenDigDataPath]=uigetfile('*ven*xypts.csv','Find Your Digitized Data from Ventral View','*ven*xypts.csv');
+cd(VenDigDataPath);
+VenDigDataPreMatrix=csvread(VenDigDataName,1,0);
+    for TotalVenCols=1:1:22 %22 here because there are 11 points in ventral file
+    VenDigDataMatrix(:,TotalVenCols)=VenDigDataPreMatrix(:,TotalVenCols);
+    end
+%------ Done Loading digitized file ------
+
+%-------------Check for NaN--------------------------------
+NaNCheckVenDig=find(isnan(VenDigDataMatrix));
+
+if NaNCheckVenDig>0
+%    disp('Ventral Coordinate file is digitized incorrectly!');beep;
+    beep;
+    Venmsgbox=msgbox('Ventral Coordinate file Invalid','You Digitized Wrong! Be More Careful Next Time Buddy!','warn');
+    uiwait(Venmsgbox);
+else 
+    disp('Ventral Coordinate file is valid and loaded')
+end
+
+pause(0.75)
+%--------------End Check for NaN--------------------------- 
+
+%------Which turtle? - This determines the carapace length to use---------
+    clc
+     disp(' ')
+     disp('Which turtle are you processing?')
+     disp(' ')
+     disp('1:  Cp01')
+     disp('2:  Cp02')
+     disp('3:  Cp04')
+     disp('4:  Cp05')
+     disp(' ')
+     disp(' ')
+     choice=input('?  ');
+        if choice==1  %Es06
+            CL=0.1975; turtle='Es06';
+        elseif choice==2  %Es03
+            CL=0.172; turtle='Es03';
+        elseif choice==3  %Es04
+            CL=0.165; turtle='Es04';
+        elseif choice==4  %Es05
+            CL=0.225; turtle='Es05';
+        end
+        
+     BL=CL;
+%------ END - Which turtle? ------
+
+%------ Load calibration data ------
+
+    %framerate=input('Enter EFFECTIVE framing rate correcting for skipped frames (fr/sec):  ');
+    framerate=100;
+    timeperframe=(1/framerate);
+    disp(' ')
+    clc
+    disp('Framerate in code is 100fps - if this is not right, adjust it in the code')
+    disp(' ')
+    disp(' ')
+    pause(0.75)
+    disp(' ')
+   
+     disp('Each filming day has two calibration files (a lateral and a ventral)')
+     disp('What day was this filmed?')
+     disp(' ')
+     disp('1:  Day #1')
+     disp('2:  Day #2')
+     disp('3:  Day #3')
+     disp('4:  Day #4')
+     disp('5:  Day #5')
+     disp('6:  Day #6')
+     disp('7:  Day #7') 
+     disp('8:  Day #8') 
+     disp('9:  Day #9')
+     disp('10:  Day #10')
+     disp(' ')
+     disp(' ')
+     choice=input('?  ');
+
+        if choice==1  
+            LatcalName='Day1LatCalxypts.csv';VentcalName='Day1VenCalxypts.csv';filmday='Filming Day #1';
+        elseif choice==2  
+            LatcalName='Day2LatCalxypts.csv';VentcalName='Day2VenCalxypts.csv';filmday='Filming Day #2';
+        elseif choice==3  
+            LatcalName='Day3LatCalxypts.csv';VentcalName='Day3VenCalxypts.csv';filmday='Filming Day #3';
+        elseif choice==4  
+            LatcalName='Day4LatCalxypts.csv';VentcalName='Day4VenCalxypts.csv';filmday='Filming Day #4';
+        elseif choice==5  
+            LatcalName='Day5LatCalxypts.csv';VentcalName='Day5VenCalxypts.csv';filmday='Filming Day #5';
+        elseif choice==6  
+             LatcalName='Day6LatCalxypts.csv';VentcalName='Day6VenCalxypts.csv';filmday='Filming Day #6';
+        elseif choice==7  
+             LatcalName='Day7LatCalxypts.csv';VentcalName='Day7VenCalxypts.csv';filmday='Filming Day #7';
+        elseif choice==8  
+             LatcalName='Day8LatCalxypts.csv';VentcalName='Day8VenCalxypts.csv';filmday='Filming Day #8';
+        elseif choice==9  
+             LatcalName='Day9LatCalxypts.csv';VentcalName='Day9VenCalxypts.csv';filmday='Filming Day #9';
+        elseif choice==10  
+             LatcalName='Day9LatCalxypts.csv';VentcalName='Day10VenCalxypts.csv';filmday='Filming Day #10';
+        end
+
+Ventcal=csvread(VentcalName,1,0,[1,0,1,3]);
+clc
+disp(' ')
+disp('Digitized Coordinates and Calibration loaded for:')
+disp(' ')
+disp(turtle)
+disp(' ')
+disp(filmday)
+pause(0.5)
+
+
+    VENxcaldiff=Ventcal(1,3)-Ventcal(1,1);
+    VENycaldiff=Ventcal(1,4)-Ventcal(1,2);
+    VENpixeldist=sqrt((VENxcaldiff^2)+(VENycaldiff^2));
+    VENVideoXYCal=CalibL./VENpixeldist; %multiply pixel values by this conversion factor to get meters
+
+%------ Done Loading Calibration ------
+
+%------ Correct for Turtle Swimming Right-to-Left (by making it appear that
+%turtle is swimming left-to-right)
+
+    coorddata=VenDigDataMatrix;
+    
+    [rows,columns]=size(coorddata); % calculates the size of the coordata matrix 
+    disp(' ')
+    disp(' ')
+    disp(' ')
+    x=input('Is turtle swimming left-to-right (type "0") or right-to-left (type "2")?  ','s');
+    y=str2num(x);
+    z=1-y;
+    coorddata=coorddata.*z;
+ 
+    %%% Assign origin (left point of calibration grid) and adjust coordinates
+    
+    for m=1:2:21 
+        coorddata(:,m)=coorddata(:,m)-Ventcal(1,1);
+    end
+   
+    for m=2:2:22 
+        coorddata(:,m)=coorddata(:,m)-Ventcal(1,2);
+    end
+%------ DONE Correcting for Direction of Swimming ------
+
+%------ SPECIFY LENGTH OF WHOLE SEQUENCE TO PROCESS ------
+    %Above rows and columns defines size of coorddata
+    
+prompt = {'Start Frame:','End Frame:'};
+dlg_title = 'Range to Use For Full Sequence';
+num_lines = 1;
+def = {'1',num2str(rows)};
+answer = inputdlg(prompt,dlg_title,num_lines,def);
+
+answer=str2double(answer);
+startframe=answer(1:1);
+endframe=answer(2:2);
+
+coorddata=coorddata(startframe:endframe,:);
+disp(' ')
+disp(' ')
+disp('Coordinate matrix has been reconfigured to use frame');disp(' '); ...
+    disp(startframe);disp('to');disp(' ');disp(endframe);disp('to calculate values for the whole trial sequence');
+pause(2.5)
+[rows,columns]=size(coorddata); %gets new size of coorddata
+
+%------ Calculate the COR position - this option copied from centrotAngieRevisedSAT
+
+%%% Generate completely interpolated matrix
+    interpolatedmatrix=ones(rows,200);
+    interpolatedmatrix(:,1)=coorddata(:,3);
+    interpolatedmatrix(:,2)=coorddata(:,4);
+    interpolatedmatrix(:,199)=coorddata(:,5);	
+    interpolatedmatrix(:,200)=coorddata(:,6);
+
+    Xmultiplier=((coorddata(:,5)-coorddata(:,3))/99);
+    Ymultiplier=((coorddata(:,6)-coorddata(:,4))/99);
+
+    for v=(3:2:197)
+        interpolatedmatrix(:,v)=Xmultiplier+interpolatedmatrix(:,v-2);
+    end
+
+    for vv=(4:2:198)
+        interpolatedmatrix(:,vv)=Ymultiplier+interpolatedmatrix(:,vv-2);
+    end
+
+%%% Designate points (x & y coords) from interpolated matrix and calibrate to meters
+    
+    for i=1:100 %Creates x-coordinates for 100 points
+        temp1=['XPoint', int2str(i), '=interpolatedmatrix(:,i*2-1).*VENVideoXYCal'];
+        eval(temp1);
+    end
+
+    for i=1:100 %Creates y-coordinates for 100 points 
+        temp2=['YPoint', int2str(i), '=interpolatedmatrix(:,i*2).*VENVideoXYCal'];
+        eval(temp2);
+    end
+
+    clc %to clear the window of the huge matrices above
+    
+    %Gabe created the above code to replace 200 lines of text (first 6 lines seen below)
+        %Point1X=interpolatedmatrix(:,1).*VideoXYCal;
+        %Point1Y=interpolatedmatrix(:,2).*VideoXYCal;
+        %Point2X=interpolatedmatrix(:,3).*VideoXYCal;
+        %Point2Y=interpolatedmatrix(:,4).*VideoXYCal;
+        %Point3X=interpolatedmatrix(:,5).*VideoXYCal;
+        %Point3Y=interpolatedmatrix(:,6).*VideoXYCal;
+
+    AllPointsXY=[XPoint1 YPoint1 XPoint2 YPoint2 XPoint3 YPoint3 XPoint4 YPoint4 XPoint5 YPoint5 XPoint6 YPoint6 XPoint7 YPoint7 XPoint8 YPoint8 XPoint9 YPoint9 XPoint10 YPoint10... 
+        XPoint11 YPoint11 XPoint12 YPoint12 XPoint13 YPoint13 XPoint14 YPoint14 XPoint15 YPoint15 XPoint16 YPoint16 XPoint17 YPoint17 XPoint18 YPoint18 XPoint19 YPoint19 XPoint20 YPoint20...
+		XPoint21 YPoint21 XPoint22 YPoint22 XPoint23 YPoint23 XPoint24 YPoint24 XPoint25 YPoint25 XPoint26 YPoint26 XPoint27 YPoint27 XPoint28 YPoint28 XPoint29 YPoint29 XPoint30 YPoint30...
+		XPoint31 YPoint31 XPoint32 YPoint32 XPoint33 YPoint33 XPoint34 YPoint34 XPoint35 YPoint35 XPoint36 YPoint36 XPoint37 YPoint37 XPoint38 YPoint38 XPoint39 YPoint39 XPoint40 YPoint40...
+		XPoint41 YPoint41 XPoint42 YPoint42 XPoint43 YPoint43 XPoint44 YPoint44 XPoint45 YPoint45 XPoint46 YPoint46 XPoint47 YPoint47 XPoint48 YPoint48 XPoint49 YPoint49 XPoint50 YPoint50...
+		XPoint51 YPoint51 XPoint52 YPoint52 XPoint53 YPoint53 XPoint54 YPoint54 XPoint55 YPoint55 XPoint56 YPoint56 XPoint57 YPoint57 XPoint58 YPoint58 XPoint59 YPoint59 XPoint60 YPoint60...
+		XPoint61 YPoint61 XPoint62 YPoint62 XPoint63 YPoint63 XPoint64 YPoint64 XPoint65 YPoint65 XPoint66 YPoint66 XPoint67 YPoint67 XPoint68 YPoint68 XPoint69 YPoint69 XPoint70 YPoint70...
+		XPoint71 YPoint71 XPoint72 YPoint72 XPoint73 YPoint73 XPoint74 YPoint74 XPoint75 YPoint75 XPoint76 YPoint76 XPoint77 YPoint77 XPoint78 YPoint78 XPoint79 YPoint79 XPoint80 YPoint80...
+		XPoint81 YPoint81 XPoint82 YPoint82 XPoint83 YPoint83 XPoint84 YPoint84 XPoint85 YPoint85 XPoint86 YPoint86 XPoint87 YPoint87 XPoint88 YPoint88 XPoint89 YPoint89 XPoint90 YPoint90...
+		XPoint91 YPoint91 XPoint92 YPoint92 XPoint93 YPoint93 XPoint94 YPoint94 XPoint95 YPoint95 XPoint96 YPoint96 XPoint97 YPoint97 XPoint98 YPoint98 XPoint99 YPoint99 XPoint100 YPoint100];
+
+%%% Start of key point definitions
+	
+    NosePointX=coorddata(:,1).*VENVideoXYCal;
+	NosePointY=coorddata(:,2).*VENVideoXYCal;
+	AnteriorPlastronX=coorddata(:,3).*VENVideoXYCal;
+	AnteriorPlastronY=coorddata(:,4).*VENVideoXYCal;
+	PosteriorPlastronX=coorddata(:,5).*VENVideoXYCal;
+	PosteriorPlastronY=coorddata(:,6).*VENVideoXYCal;
+	RShoulderX=coorddata(:,7).*VENVideoXYCal;
+	RShoulderY=coorddata(:,8).*VENVideoXYCal;
+	RElbowPointX=coorddata(:,9).*VENVideoXYCal;
+	RElbowPointY=coorddata(:,10).*VENVideoXYCal;
+	LShoulderX=coorddata(:,11).*VENVideoXYCal;
+	LShoulderY=coorddata(:,12).*VENVideoXYCal;
+	LElbowPointX=coorddata(:,13).*VENVideoXYCal;
+	LElbowPointY=coorddata(:,14).*VENVideoXYCal;
+	RHipPointX=coorddata(:,15).*VENVideoXYCal;
+	RHipPointY=coorddata(:,16).*VENVideoXYCal;
+	RKneePointX=coorddata(:,17).*VENVideoXYCal;
+	RKneePointY=coorddata(:,18).*VENVideoXYCal;
+    LHipPointX=coorddata(:,19).*VENVideoXYCal;
+	LHipPointY=coorddata(:,20).*VENVideoXYCal;
+	LKneePointX=coorddata(:,21).*VENVideoXYCal;
+	LKneePointY=coorddata(:,22).*VENVideoXYCal;
+	
+	NosePoint=[NosePointX NosePointY];
+	AnteriorPlastron=[AnteriorPlastronX AnteriorPlastronY];
+	PosteriorPlastron=[PosteriorPlastronX PosteriorPlastronY];
+	RShoulder=[RShoulderX RShoulderY];
+	RElbowPoint=[RElbowPointX RElbowPointY];
+	LShoulder=[LShoulderX LShoulderY];
+	LElbowPoint=[LElbowPointX LElbowPointY];
+	RHipPoint=[RHipPointX RHipPointY];
+	RKneePoint=[RKneePointX RKneePointY];
+	LHipPoint=[LHipPointX LHipPointY];
+	LKneePoint=[LKneePointX LKneePointY];
+
+%%% Calculate COR (point of smallest cumulative displacement)  
+	
+    DispMatA=ones(rows-1,200);
+	
+	for p=2:1:rows
+        DispMatA=AllPointsXY(p,:)-AllPointsXY(p-1,:);
+		DispMatXvY(p-1,:)=DispMatA;%XY displacement matrix in meters
+    end
+	
+%     %---These lines seem odd & never are used anywhere else - commented out
+%     %May 2009
+% 	tpfMatXvY=ones(rows-1,200);
+% 	tpfMatXvY(:,:)=timeperframe;
+% 	VelMatXvY=DispMatXvY./tpfMatXvY;%XY velocity matrix in meters
+		
+    DispMatXvYsq=DispMatXvY.^2;%generate matrix of summed xy squared displacements
+    for a=1:1:100
+        DispMatNetSum(:,a)=DispMatXvYsq(:,a*2-1)+DispMatXvYsq(:,a*2);
+    end
+
+    %Gabe used the above code to replace 100 lines of text (first 7 lines seen below)    
+        %DispMatXvYsq=DispMatXvY.^2;%generate matrix of summed xy squared displacements
+        %DispMatNetSum(:,1)=DispMatXvYsq(:,1)+DispMatXvYsq(:,2);
+        %DispMatNetSum(:,2)=DispMatXvYsq(:,3)+DispMatXvYsq(:,4);
+        %DispMatNetSum(:,3)=DispMatXvYsq(:,5)+DispMatXvYsq(:,6);
+        %DispMatNetSum(:,4)=DispMatXvYsq(:,7)+DispMatXvYsq(:,8);
+        %DispMatNetSum(:,5)=DispMatXvYsq(:,9)+DispMatXvYsq(:,10);
+        %DispMatNetSum(:,6)=DispMatXvYsq(:,11)+DispMatXvYsq(:,12);
+
+    DispMatNet=DispMatNetSum.^0.5;% matrix of square roots of sum of squares = actual displacements
+	DispMatNetCum=sum(DispMatNet);
+	[MinSumPointVal,MinSumPointIndex] = min(DispMatNetCum); %returns value and index (matrix position) of minimum displacement point
+	DispMatNetColInit=DispMatNet(:,MinSumPointIndex);
+	[rows2,columns2]=size(DispMatNetColInit);
+	DispMatNetCol=zeros(rows2+1,1);
+		
+    for q2=2:1:(rows2+1)
+        DispMatNetCol(q2,:)=DispMatNetColInit(q2-1,:);%cumulative displacement matrix in meters
+    end
+	
+	DispMatNetColFinal=cumsum(DispMatNetCol); %Matrix of cumulative displacement in meters
+	DispMatNetColFinalBL=DispMatNetColFinal.*(1/BL); %Matrix of cumulative displacement in BL
+    [rowfordisp,colfordisp]=size(DispMatNetColFinalBL);
+    CumulativeDispBL=DispMatNetColFinalBL(rowfordisp,1); %Last value in matrix representing cumulative displacement (should be at least 3BL to use the trial)
+	CumulativeDisp=DispMatNetColFinal(rowfordisp,1); %Cumulative displacement in meters
+    
+    %Calculate Velocity for Entire Sequence
+    [fdata,errcode,work]=gcvsplW(DispMatNetColFinal,2,3,0,1,rowfordisp);
+    VelAllGCV=fdata; %Smoothed velocity
+    VelAllGCV=VelAllGCV.*framerate; %Instantaneous Velocity in meters per second
+    VelAllGCVBL=VelAllGCV./BL; %Instantaneous velocity in BL/sec
+    
+    MeanVelAllGCV=mean(VelAllGCV); %Mean velocity (m/s) for entire sequence
+    MeanVelAllGCVBL=mean(VelAllGCVBL); %Mean velocity (BL/s) for entire sequence
+    
+    
+%%% Calculate the COR coordinates through sequence -(find both x & y columns of original data for assigned COR)
+    
+    valy=MinSumPointIndex*2;
+    valx=valy-1;
+    CofRcol1=interpolatedmatrix(:,valx); %finds column of original x-coordinate data
+    CofRcol2=interpolatedmatrix(:,valy); %finds column of original y-coordinate data
+    CofRcol1M=CofRcol1.*VENVideoXYCal; %converts to meters, this is the COR X through time
+    CofRcol2M=CofRcol2.*VENVideoXYCal; %converts to meters, this is the COR Y through time
+    CORX=CofRcol1M;
+    CORY=CofRcol2M;
+    CORXYMatrix=[CORX CORY];
+
+%%% Calculates linear regression and correlation coefficient (r) for COR coord data (X=CofRcol1M; Y=CofRcol2M)
+    
+    rfromcorrelation=corrcoef(CofRcol1M,CofRcol2M);
+    disp(' ')
+    rsquare=rfromcorrelation(1,2)^2; % you see this and should write it down
+
+%%% Generates equation for line of best fit through data points
+    
+    corlineequation=polyfit(CofRcol1M,CofRcol2M,1);
+    yintercept=corlineequation(2);
+    slope=corlineequation(1);
+    fit=yintercept+slope*CofRcol1M;
+%     disp('COR (% of body length) = ')
+%     disp(MinSumPointIndex)
+
+    %%% Create vectors
+    
+    [rowsofCofRcolMatrix colsofCorRcolMatrix]=size(CofRcol1M); %Calculates how many rows (i.e., frames) in this sequence
+
+    %Posxaxis1
+    Posxaxis1=[1 0]; %Designates a vector for the + x-axis
+
+    %Posxaxis2
+    Posxaxis2=ones(rowsofCofRcolMatrix,2);
+    Posxaxis2(:,2)=0; %Designates a vector for the + x-axis in many rows
+
+    %Pathvector1
+    y1=yintercept+(CofRcol1M(1,1)*slope); %y-value for initial position of COR based on regression
+    y2=yintercept+(CofRcol1M(rowsofCofRcolMatrix,1)*slope); %y-value for final position of COR based on regression 
+    pathpoint1=[CofRcol1M(1,1) y1]; %initial coordinates of COR based on regression
+    pathpoint2=[CofRcol1M(rowsofCofRcolMatrix,1) y2]; %final coordinates of COR based on regression
+    pathpoint1trans=pathpoint1-pathpoint1; %pathpoint1trans is pathpoint1 moved to the origin
+    pathpoint2trans=pathpoint2-pathpoint1; %pathpoint2trans is adjusted accordly (to above)
+    Pathvector1=pathpoint2trans-pathpoint1trans; %Designates a vector in the direction of COR movement based on linear regression
+
+    %Pathvector2
+    %Create a path vector based on the initial and final coordinates of the COR
+    CORinitial=[CofRcol1M(1,1) CofRcol2M(1,1)];
+    CORfinal=[CofRcol1M(rowsofCofRcolMatrix,1) CofRcol2M(rowsofCofRcolMatrix,1)];
+    CORinitialtrans=CORinitial-CORinitial;
+    CORfinaltrans=CORfinal-CORinitial;
+    Pathvector2=CORfinaltrans-CORinitialtrans; %Designates a vector in the direction of COR movement based on actual position
+
+    %Midlinevector
+    PosteriorPlastrontrans=PosteriorPlastron-PosteriorPlastron;
+    AnteriorPlastrontrans=AnteriorPlastron-PosteriorPlastron;
+    Midlinevector=AnteriorPlastrontrans-PosteriorPlastrontrans; %Designates vector along midline of plastron with posterior point at origin
+
+    %HeadVector (for calculating Head Yaw)
+    NosePointTrans=NosePoint-AnteriorPlastron;
+    AnteriorPlastronTransHeadYaw=AnteriorPlastron-AnteriorPlastron;
+    HeadvectorTrans=NosePointTrans-AnteriorPlastronTransHeadYaw; %Designates a vector along head from Ant Plastron to nose with Ant Plastron at origin
+        
+    %Vector45
+    %Create a vector at 45 degrees from the positive x-axis in quadrant I
+    Vector45=ones(rowsofCofRcolMatrix, 2);
+    Vector45(:,:)=5;
+
+    %PosVector90
+    %Create a vector 90 degrees from the positive x-axis (in the +y direction)
+    PosVector90=ones(rowsofCofRcolMatrix, 2);
+    PosVector90(:,1)=0;
+    PosVector90(:,2)=1;
+
+    %NegVector90
+    %Create a vector 90 degrees from the positive x-axis (in the -y direction)
+    NegVector90=ones(rowsofCofRcolMatrix, 2);
+    NegVector90(:,1)=0;
+    NegVector90(:,2)=-1;
+
+%%% Create abbreviates for vectors
+    
+    %Posxaxis1
+    %Posxaxis2
+    Pv1=Pathvector1;
+    Pv2=Pathvector2;
+    %Midlinevector
+    %PosVector90
+    %NegVector90
+
+%%% Calculate angles between vectors
+    
+    %thetaPv1Pv2
+    %Calculates the magnitude of the angle between the two path vectors
+    thetaPv1Pv2=gabang(Pv1, Pv2); %should be very small  -- Save this it is the angle difference btwn two methods of path calculation
+    disp(strcat('Angle between the two path vectors =    ',num2str(thetaPv1Pv2)))
+    disp('')
+    disp(' ')
+    disp('This angle should be very small!')
+    pause(0.75)
+    
+    %thetaPosxaxis1Pv1
+    %Calculates the angle between the Posxaxis1 and Pathvector1
+    thetaPosxaxis1Pv1=gabang(Posxaxis1, Pv1);
+
+    %thetaPosxaxis1Pv1sign 
+    %Takes into account the sign of the angle between Pv1 and the Posxaxis1 (ie,+ x-axis)
+    signofslope=slope./(abs(slope)); %will equal either a postive or negative one
+    thetaPosxaxis1Pv1sign=thetaPosxaxis1Pv1.*signofslope; %angle in degrees
+
+    %Midlinevectorrot
+    %Midlinevector for all frames rotated by the opposite of the angle calculated in "thetaPosxaxisPv1sign"
+    A=thetaPosxaxis1Pv1sign.*(pi/180); %converts angle into radians
+    B=[cos(A) -sin(A); sin(A) cos(A)]; %rotates object clockwise around the origin, so a positive angle rotates clockwise and a negative angle rotates counterclockwise
+    Midlinevectorrot=Midlinevector*B; %orientation of midline adjusted for deviation of pathvector1 from + x-axis
+    
+    %AnteriorPlastron Sideslip 
+        %orthogonal distance of Point 2 from path of travel
+    SideslipAntPlastron=Midlinevectorrot(:,2);
+    SideslipAntPlastronBL=SideslipAntPlastron.*(1/BL);
+
+    %HeadVectorRot
+    HeadVectorRot=HeadvectorTrans*B;
+    
+    %Nosetip Sideslip
+    SideslipNose=HeadVectorRot(:,2);
+    SideslipNoseBL=SideslipNose.*(1/BL);
+    
+    %thetaPosxaxis2Midlinevectorrot
+    %Calculates the angle between the Posxaxis2 and Midlinevectorrot for all
+    %frames; the angle between the + x-axis and the adjusted turtle midline
+    thetaPosxaxis2Midlinevectorrot=gabang(Posxaxis2, Midlinevectorrot);
+    
+    %thetaPosxaxis2HeadVectorRot
+    %Calculates the angle between the Posxaxis2 and HeadVectorRot for all
+    %frames; the angle between the + x-axis and the adjusted head vector
+    thetaPosxaxis2HeadVectorRot=gabang(Posxaxis2, HeadVectorRot); 
+
+    %thetaVector45MidlinevectorrotSign
+    %Use Vector45 to determine whether the angle "thetaPosxaxis2Midlinevectorrot" is positive or negative;
+    %Calculate the angle between vector45 and Midlinevectorrot; if this is greater than 45 degrees than the value of the angle will be negative
+    thetaVector45Midlinevectorrot=gabang(Vector45, Midlinevectorrot);
+    thetaVector45MidlinevectorrotSign=(45-thetaVector45Midlinevectorrot)./(abs(45-thetaVector45Midlinevectorrot)); %determines whether "thetaPosxaxisMidlinevectorrot"
+    %will be positive or negative
+    
+    %thetaVector45HeadVectorRotSign
+    %Use Vector45 to determine whether the angle "thetaPosxaxis2HeadVectorRot" is positive or negative;
+    %Calculate the angle between vector45 and HeadVectorRot; if this is greater than 45 degrees than the value of the angle will be negative
+    thetaVector45HeadVectorRot=gabang(Vector45, HeadVectorRot);
+    thetaVector45HeadVectorRotSign=(45-thetaVector45HeadVectorRot)./(abs(45-thetaVector45HeadVectorRot)); %determines whether "thetaPosxaxisHeadVectorRot"
+    %will be positive or negative
+
+    %thetaPosxaxis2MidlinevectorrotSign
+    %The angle between the turtle's path and midline with correct sign values
+    thetaPosxaxis2MidlinevectorrotSign=thetaPosxaxis2Midlinevectorrot.*thetaVector45MidlinevectorrotSign;
+    YawBody=thetaPosxaxis2MidlinevectorrotSign;
+    
+    %thetaPosxaxis2HeadVectorRotSign
+    %The angle between the turtle's path and head with correct sign values
+    thetaPosxaxis2HeadVectorRotSign=thetaPosxaxis2HeadVectorRot.*thetaVector45HeadVectorRotSign;
+    YawHeadPath=thetaPosxaxis2HeadVectorRotSign;
+    
+%%% Calculates the sideslip of the COR
+    %CofRrotatedY
+    CofR=[CofRcol1M (CofRcol2M-yintercept)]; %the CofR x and y-values combined into one matrix
+    CofRrotated=CofR*B; %Rotate this matrix so that points straddle the x-axis like they straddle the regression line
+    CofRrotatedX=CofRrotated(:,1);
+    CofRrotatedY=CofRrotated(:,2);
+    %NEED TO FIGURE OUT WHY SUBTRACTING YINTERCEPT FROM Y-VALUES APPEARS TO HAVE CHANGED THE SCALE SO DRASTICALLY - May not actually be a problem!!!
+    SideslipVenCOR=CofRrotatedY;
+    SideslipVenCORBL=SideslipVenCOR.*(1/BL);
+    
+ 
+%%% Calculate Angles
+
+    %thetaMidlinevectorPosxaxis2
+    %Calculate the angle between Midlinevector and Posxaxis2
+    thetaMidlinevectorPosxaxis2=gabang(Midlinevector, Posxaxis2);
+
+    %thetaVector45MidlinevectorSign
+    %Use Vector45 to determine whether the angle "thetaMidlinevectorPosxaxis2" is positive or negative;
+    %Calculate the angle between vector45 and Midlinevector; if this is greater than 45 degrees than the value of the angle will be negative
+    thetaVector45Midlinevector=gabang(Vector45, Midlinevector);
+    thetaVector45MidlinevectorSign=(45-thetaVector45Midlinevector)./(abs(45-thetaVector45Midlinevector));
+
+    %thetaMidlinevectorPosxaxis2Sign
+    %The angle between the turtle's midline and the posxaxis with correct sign values
+    thetaMidlinevectorPosxaxis2Sign=thetaMidlinevectorPosxaxis2.*thetaVector45MidlinevectorSign;
+
+
+    
+%%------ START of Appendage Calculations ------
+    %%% Create appendage vectors
+    
+    %LHumVectorTrans
+    LShoulderTrans=LShoulder-LShoulder;
+    LElbowPointTrans=LElbowPoint-LShoulder;
+    LHumVectorTrans=LElbowPointTrans-LShoulderTrans;
+
+    %RHumVectorTrans
+    RShoulderTrans=RShoulder-RShoulder;
+    RElbowPointTrans=RElbowPoint-RShoulder;
+    RHumVectorTrans=RElbowPointTrans-RShoulderTrans;
+
+    %LFemurVectorTrans
+    LHipPointTrans=LHipPoint-LHipPoint;
+    LKneePointTrans=LKneePoint-LHipPoint;
+    LFemurVectorTrans=LKneePointTrans-LHipPointTrans;
+
+    %RFemurVectorTrans
+    RHipPointTrans=RHipPoint-RHipPoint;
+    RKneePointTrans=RKneePoint-RHipPoint;
+    RFemurVectorTrans=RKneePointTrans-RHipPointTrans;
+
+%%% Rotate the appendage vectors
+
+    C=thetaMidlinevectorPosxaxis2Sign.*(pi/180); %converts angle into radians
+
+    HeadvectorTransRot=ones(rowsofCofRcolMatrix, 2);
+    for a=1:1:rowsofCofRcolMatrix
+        HeadvectorTransRot(a,:)=HeadvectorTrans(a,:)*([cos(C(a,:)) -sin(C(a,:)); sin(C(a,:)) cos(C(a,:))]); %orientation of HeadvectorTrans adjusted for deviation of midline from + x-axis
+        LHumVectorTransRot(a,:)=LHumVectorTrans(a,:)*([cos(C(a,:)) -sin(C(a,:)); sin(C(a,:)) cos(C(a,:))]); %orientation of LHumVectorTrans adjusted for deviation of midline from + x-axis
+        RHumVectorTransRot(a,:)=RHumVectorTrans(a,:)*([cos(C(a,:)) -sin(C(a,:)); sin(C(a,:)) cos(C(a,:))]); %orientation of RHumVectorTrans adjusted for deviation of midline from + x-axis
+        LFemurVectorTransRot(a,:)=LFemurVectorTrans(a,:)*([cos(C(a,:)) -sin(C(a,:)); sin(C(a,:)) cos(C(a,:))]); %orientation of LFemurVectorTrans adjusted for deviation of midline from + x-axis
+        RFemurVectorTransRot(a,:)=RFemurVectorTrans(a,:)*([cos(C(a,:)) -sin(C(a,:)); sin(C(a,:)) cos(C(a,:))]); %orientation of RFemurVectorTrans adjusted for deviation of midline from + x-axis
+    end
+
+%%% Calculate angle between ""vectorTransRot and Posxaxis2 (same as the angle between the appendage vector and midline)
+
+    %thetaHeadvectorTransRotPosxaxis2
+    %Calculate the angle between HeadvectorTransRot and Posxaxis2
+    thetaHeadvectorTransRotPosxaxis2=gabang(HeadvectorTransRot, Posxaxis2); %Signless angle
+
+    %thetaLHumVectorTransRotPosxaxis2
+    %Calculate the angle between LHumVectorTransRot and Posxaxis2
+    thetaLHumVectorTransRotPosxaxis2=gabang(LHumVectorTransRot, Posxaxis2); %Signless angle
+
+    %thetaRHumVectorTransRotPosxaxis2
+    %Calculate the angle between RHumVectorTransRot and Posxaxis2
+    thetaRHumVectorTransRotPosxaxis2=gabang(RHumVectorTransRot, Posxaxis2); %Signless angle
+
+    %thetaLFemurVectorTransRotPosxaxis2
+    %Calculate the angle between LFemurVectorTransRot and Posxaxis2
+    thetaLFemurVectorTransRotPosxaxis2=gabang(LFemurVectorTransRot, Posxaxis2); %Data to output
+    lleg=thetaLFemurVectorTransRotPosxaxis2;
+    
+    %thetaRFemurVectorTransRotPosxaxis2
+    %Calculate the angle between RFemurVectorTransRot and Posxaxis2
+    thetaRFemurVectorTransRotPosxaxis2=gabang(RFemurVectorTransRot, Posxaxis2); %Data to output
+    rleg=thetaRFemurVectorTransRotPosxaxis2;
+    
+%%% Calculate the sign (+/-) of the angles theta""TransRotPosxaxis2 (Femur angles never go negative)
+
+    %thetaVector45HeadvectorTransRotSign
+    %Calculate the angle between vector45 and HeadvectorTransRot; if >45 deg than value of angle will be negative
+    thetaVector45HeadvectorTransRot=gabang(Vector45, HeadvectorTransRot);
+    thetaVector45HeadvectorTransRotSign=(45-thetaVector45HeadvectorTransRot)./(abs(45-thetaVector45HeadvectorTransRot));
+
+    %thetaPosVector90LHumVectorTransRotSign
+    %Calculate the angle between PosVector90 and LHumVectorTransRot; if >90 deg than value of angle will be negative
+    thetaPosVector90LHumVectorTransRot=gabang(PosVector90, LHumVectorTransRot);
+    thetaPosVector90LHumVectorTransRotSign=(90-thetaPosVector90LHumVectorTransRot)./(abs(90-thetaPosVector90LHumVectorTransRot)); 
+
+    %thetaNegVector90RHumVectorTransRotSign
+    %Calculate the angle between NegVector90 and RHumVectorTransRot; if >90 deg than value of angle will be negative
+    thetaNegVector90RHumVectorTransRot=gabang(NegVector90, RHumVectorTransRot);
+    thetaNegVector90RHumVectorTransRotSign=(90-thetaNegVector90RHumVectorTransRot)./(abs(90-thetaNegVector90RHumVectorTransRot)); 
+
+%%% Calculate the sign corrected angles for Head and L&R Hum (Femur angles never go negative)
+
+    %thetaHeadvectorTransRotPosxaxis2Sign
+    thetaHeadvectorTransRotPosxaxis2Sign=thetaHeadvectorTransRotPosxaxis2.*thetaVector45HeadvectorTransRotSign; %Data to output
+    YawHeadMidline=thetaHeadvectorTransRotPosxaxis2Sign; %Angle between head vector (nose to ant plastron) and midline vector
+        
+    %thetaLHumVectorTransRotPosxaxis2Sign
+    thetaLHumVectorTransRotPosxaxis2Sign=thetaLHumVectorTransRotPosxaxis2.*thetaPosVector90LHumVectorTransRotSign; %Data to output
+    larm=thetaLHumVectorTransRotPosxaxis2Sign;
+    
+    %thetaRHumVectorTransRotPosxaxis2Sign
+    thetaRHumVectorTransRotPosxaxis2Sign=thetaRHumVectorTransRotPosxaxis2.*thetaNegVector90RHumVectorTransRotSign; %Data to output
+    rarm=thetaRHumVectorTransRotPosxaxis2Sign;
+ 
+%%------ END of Appendage Calculations ------
+
+%------ Smoothing Appendage Angles For Full Trial ------
+[fdata,errcode,work]=gcvsplW(larm,2,3,0,0,rowfordisp);
+larmGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(rarm,2,3,0,0,rowfordisp);
+rarmGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(lleg,2,3,0,0,rowfordisp);
+llegGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(rleg,2,3,0,0,rowfordisp);
+rlegGCV=fdata;
+%------ END Smoothing Appendage Angles For Full Trial ------
+
+ timecode=ones(rows,1);
+    for tcd=1:1:rows
+        framecount=(tcd-1);
+        timecode(tcd,1)=framecount.*timeperframe;
+    end
+    
+%------ Plotting ------
+FrameNumber=ones(rowfordisp,1);
+    for fm=1:1:rowfordisp
+        FrameNumber(fm,1)=fm;
+    end
+
+scrsz=get(0,'ScreenSize');
+figure('Position',[75 scrsz(4)/20 scrsz(3)/1.1 scrsz(4)/1.2],'Name',...
+    'Ventral Trial Criterion Check','NumberTitle','off');    
+
+subplot(2,3,[1 3]);
+plot(FrameNumber,larmGCV,'-go','LineWidth',2,'MarkerSize',5,...
+    'MarkerEdgeColor','k','MarkerFaceColor','g'),title('Left Forelimb Angle'),...
+    xlabel('Frame Number'),ylabel('Angle (degrees)');
+
+subplot(2,3,4);
+plot(FrameNumber,larmGCV,FrameNumber,rarmGCV,'LineWidth',2),title('Forelimb Angles'),...
+    xlabel('Frame Number'),ylabel('Angle (degrees)'),legend('Left Arm','Right Arm');
+
+subplot(2,3,5);
+plot(FrameNumber,llegGCV,'r',FrameNumber,rlegGCV,'k','LineWidth',2),title('Hindlimb Angles'),...
+    xlabel('Frame Number'),ylabel('Angle (degrees)'),legend('Left Leg','Right Leg');
+% plot(FrameNumber(10:94,:),llegGCV(10:94,:),'r',FrameNumber(10:94,:),rlegGCV(10:94,:),'k','LineWidth',2),title('Hindlimb Angles'),...
+%     xlabel('Frame Number'),ylabel('Angle (degrees)'),legend('Left Leg','Right Leg');
+
+subplot(2,3,6);
+plot(CofRcol1M,fit,'-k','LineWidth',2);
+hold;
+clc
+plot(CofRcol1M,CofRcol2M,'ko','MarkerSize',5,'MarkerEdgeColor','k',...
+    'MarkerFaceColor','k'),title('Regression of COR'),...
+    xlabel('Ven COR X'),ylabel('Ven COR Y');legend(strcat('r^2=',num2str(rsquare)),strcat('Cumul Disp= ',num2str(CumulativeDispBL),' BL'));
+pause(1)
+
+%------ Save Figure ------
+FigureSaveName=VenDigDataName(1:9);
+FigureSaveName=strcat(FigureSaveName,'_VenCheck');
+
+figure_handle=gcf; %Returns the current figure's handle
+%Now assign this M-file to the CloseRequestFcn of a figure: 
+set(figure_handle,'CloseRequestFcn','Angie_Fig_Close'); %Asks to Save or Not before closing figure
+
+% % button=questdlg('Would you like to save this figure as a .fig?  The file can be opened later in Matlab.',...
+% %     'To Save Or Not to Save?','Yes','No ','No ');
+% % if button=='Yes'
+% %     saveas(figure(1),[FigureSaveName,'.fig']);
+% %     %clf ('reset'); %clears figure
+% %     disp(' ')
+% %     disp('')
+% %     disp('Figure Saved')
+% %     disp(' ')
+% %     disp(' ')
+% %     pause(0.75)
+% % elseif button=='No '
+% %     %clf ('reset');
+% %     disp(' ')
+% %     disp(' ')
+% %     disp('Figure NOT Saved')
+% %     disp(' ')
+% %     disp(' ')
+% %     pause(0.75)
+% % end
+
+%------ END Save Figure ------
+    
+%---------------------------------------------------
+%---------------------------------------------------
+%---------------------------------------------------
+%------ Everything above is the same as in option 3
+%------ Option 3 has the plotting commented out----
+%------ Option 1 does not have saving -------------
+%---------------------------------------------------
+%---------------------------------------------------   
+
+elseif choice==2 %Criteria check for lateral file
+    %------ Loading digitized file ------
+[LatDigDataName,LatDigDataPath]=uigetfile('*lat*xypts.csv','Find Your Digitized Data from Lateral View','*lat*xypts.csv');
+cd(LatDigDataPath);
+LatDigDataPreMatrix=csvread(LatDigDataName,1,0);
+    for TotalLatCols=1:1:6 %6 here because there are 3 points in lateral file
+    LatDigDataMatrix(:,TotalLatCols)=LatDigDataPreMatrix(:,TotalLatCols);
+    end
+%------ Done Loading digitized file ------
+
+%-------------Check for NaN--------------------------------
+NaNCheckLatDig=find(isnan(LatDigDataMatrix));
+
+if NaNCheckLatDig>0
+%    disp('Lateral Coordinate file is digitized incorrectly!');beep;
+    beep;
+    Latmsgbox=msgbox('Lateral Coordinate file Invalid','You Digitized Wrong! Be More Careful Next Time Buddy!','warn');
+    uiwait(Latmsgbox);
+else 
+    disp('Lateral Coordinate file is valid and loaded')
+end
+
+pause(0.75)
+%--------------End Check for NaN--------------------------- 
+
+%------Which turtle? - This determines the carapace length to use---------
+    clc
+     disp(' ')
+     disp('Which turtle are you processing?')
+     disp(' ')
+     disp('1:  Es06')
+     disp('2:  Es03')
+     disp('3:  Es04')
+     disp('4:  Es05')
+     disp(' ')
+     disp(' ')
+     choice=input('?  ');
+        if choice==1  %Es06
+            CL=0.1975; turtle='Es06';
+        elseif choice==2  %Es03
+            CL=0.172; turtle='Es03';
+        elseif choice==3  %Es04
+            CL=0.165; turtle='Es04';
+        elseif choice==4  %Es05
+            CL=0.225; turtle='Es05';
+        end
+        
+     BL=CL;
+%------ END - Which turtle? ------
+
+%------ Load calibration data ------
+
+    %framerate=input('Enter EFFECTIVE framing rate correcting for skipped frames (fr/sec):  ');
+    framerate=100;
+    timeperframe=(1/framerate);
+    disp(' ')
+    clc
+    disp('Framerate in code is 100fps - if this is not right, adjust it in the code')
+    disp(' ')
+    disp(' ')
+    pause(0.75)
+    disp(' ')
+   
+     disp('Each filming day has two calibration files (a lateral and a ventral)')
+     disp('What day was this filmed?')
+     disp(' ')
+     disp('1:  Day #1')
+     disp('2:  Day #2')
+     disp('3:  Day #3')
+     disp('4:  Day #4')
+     disp('5:  Day #5')
+     disp('6:  Day #6')
+     disp('7:  Day #7') 
+     disp('8:  Day #8') 
+     disp('9:  Day #9') 
+     disp('10:  Day #10')
+     disp(' ')
+     disp(' ')
+     choice=input('?  ');
+
+        if choice==1  
+            LatcalName='Day1LatCalxypts.csv';VentcalName='Day1VenCalxypts.csv';filmday='Filming Day #1';
+        elseif choice==2  
+            LatcalName='Day2LatCalxypts.csv';VentcalName='Day2VenCalxypts.csv';filmday='Filming Day #2';
+        elseif choice==3  
+            LatcalName='Day3LatCalxypts.csv';VentcalName='Day3VenCalxypts.csv';filmday='Filming Day #3';
+        elseif choice==4  
+            LatcalName='Day4LatCalxypts.csv';VentcalName='Day4VenCalxypts.csv';filmday='Filming Day #4';
+        elseif choice==5  
+            LatcalName='Day5LatCalxypts.csv';VentcalName='Day5VenCalxypts.csv';filmday='Filming Day #5';
+        elseif choice==6  
+             LatcalName='Day6LatCalxypts.csv';VentcalName='Day6VenCalxypts.csv';filmday='Filming Day #6';
+        elseif choice==7  
+             LatcalName='Day7LatCalxypts.csv';VentcalName='Day7VenCalxypts.csv';filmday='Filming Day #7';
+        elseif choice==8  
+             LatcalName='Day8LatCalxypts.csv';VentcalName='Day8VenCalxypts.csv';filmday='Filming Day #8';
+        elseif choice==9  
+             LatcalName='Day9LatCalxypts.csv';VentcalName='Day9VenCalxypts.csv';filmday='Filming Day #9';
+        elseif choice==10  
+             LatcalName='Day10LatCalxypts.csv';VentcalName='Day10VenCalxypts.csv';filmday='Filming Day #10';
+        end
+
+Latcal=csvread(LatcalName,1,0,[1,0,1,3]);
+clc
+disp(' ')
+disp('Digitized Coordinates and Calibration loaded for:')
+disp(' ')
+disp(turtle)
+disp(' ')
+disp(filmday)
+pause(0.5)
+
+    LATxcaldiff=Latcal(1,3)-Latcal(1,1);
+    LATycaldiff=Latcal(1,4)-Latcal(1,2);
+    LATpixeldist=sqrt((LATxcaldiff^2)+(LATycaldiff^2));
+    LATVideoXYCal=CalibL./LATpixeldist; %multiply pixel values by this conversion factor to get meters
+%------ Done Loading Calibration ------
+
+%------ Correct for Turtle Swimming Right-to-Left (by making it appear that
+%turtle is swimming left-to-right)
+
+    coorddata=LatDigDataMatrix;
+    
+    [rows,columns]=size(coorddata); % calculates the size of the coordata matrix 
+    disp(' ')
+    disp(' ')
+    disp(' ')
+    x=input('Is turtle swimming left-to-right (type "0") or right-to-left (type "2")?  ','s');
+    y=str2num(x);
+    z=1-y;
+    coorddata=coorddata.*z;
+ 
+    %%% Assign origin (left point of calibration grid) and adjust coordinates
+    
+    for m=1:2:5 
+        coorddata(:,m)=coorddata(:,m)-Latcal(1,1);
+    end
+   
+    for m=2:2:6 
+        coorddata(:,m)=coorddata(:,m)-Latcal(1,2);
+    end
+%------ DONE Correcting for Direction of Swimming ------
+
+%------ SPECIFY LENGTH OF WHOLE SEQUENCE TO PROCESS ------
+    %Above rows and columns defines size of coorddata
+    
+prompt = {'Start Frame (You Determined This in the Ventral Check):','End Frame (You Determined This in the Ventral Check:'};
+dlg_title = 'Range to Use For Full Sequence';
+num_lines = 1;
+def = {'1',num2str(rows)};
+answer = inputdlg(prompt,dlg_title,num_lines,def);
+
+answer=str2double(answer);
+startframe=answer(1:1);
+endframe=answer(2:2);
+
+coorddata=coorddata(startframe:endframe,:);
+disp(' ')
+disp(' ')
+disp('Coordinate matrix has been reconfigured to use frame');disp(' '); ...
+    disp(startframe);disp('to');disp(' ');disp(endframe);disp('to calculate values for the whole trial sequence');
+pause(2.5)
+[rows,columns]=size(coorddata); %gets new size of coorddata 
+    
+%%% Calculate the COR position - this option copied from centrotAngieRevisedSAT
+%%% Generate completely interpolated matrix
+    
+    interpolatedmatrix=ones(rows,200);
+    interpolatedmatrix(:,1)=coorddata(:,1);
+    interpolatedmatrix(:,2)=coorddata(:,2);
+    interpolatedmatrix(:,199)=coorddata(:,3);	
+    interpolatedmatrix(:,200)=coorddata(:,4);
+
+    Xmultiplier=((coorddata(:,3)-coorddata(:,1))/99);
+    Ymultiplier=((coorddata(:,4)-coorddata(:,2))/99);
+
+    for v=(3:2:197)
+        interpolatedmatrix(:,v)=Xmultiplier+interpolatedmatrix(:,v-2);
+    end
+
+    for vv=(4:2:198)
+        interpolatedmatrix(:,vv)=Ymultiplier+interpolatedmatrix(:,vv-2);
+    end
+
+%%% Designate points (x & y coords) from interpolated matrix and calibrate to meters
+    
+    for i=1:1:100 %Creates x-coordinates for 100 points
+        temp1=['XPoint', int2str(i), '=interpolatedmatrix(:,i*2-1).*LATVideoXYCal'];
+        eval(temp1);
+    end
+
+    for i=1:1:100 %Creates y-coordinates for 100 points 
+        temp2=['YPoint', int2str(i), '=interpolatedmatrix(:,i*2).*LATVideoXYCal'];
+        eval(temp2);
+    end
+
+ clc %to clear the window of the huge matrices above
+ 
+    %Gabe created the above code to replace 200 lines of text (first 6 lines seen below)
+        %Point1X=interpolatedmatrix(:,1).*VideoXYCal;
+        %Point1Y=interpolatedmatrix(:,2).*VideoXYCal;
+        %Point2X=interpolatedmatrix(:,3).*VideoXYCal;
+        %Point2Y=interpolatedmatrix(:,4).*VideoXYCal;
+        %Point3X=interpolatedmatrix(:,5).*VideoXYCal;
+        %Point3Y=interpolatedmatrix(:,6).*VideoXYCal;
+
+    AllPointsXY=[XPoint1 YPoint1 XPoint2 YPoint2 XPoint3 YPoint3 XPoint4 YPoint4 XPoint5 YPoint5 XPoint6 YPoint6 XPoint7 YPoint7 XPoint8 YPoint8 XPoint9 YPoint9 XPoint10 YPoint10... 
+        XPoint11 YPoint11 XPoint12 YPoint12 XPoint13 YPoint13 XPoint14 YPoint14 XPoint15 YPoint15 XPoint16 YPoint16 XPoint17 YPoint17 XPoint18 YPoint18 XPoint19 YPoint19 XPoint20 YPoint20...
+		XPoint21 YPoint21 XPoint22 YPoint22 XPoint23 YPoint23 XPoint24 YPoint24 XPoint25 YPoint25 XPoint26 YPoint26 XPoint27 YPoint27 XPoint28 YPoint28 XPoint29 YPoint29 XPoint30 YPoint30...
+		XPoint31 YPoint31 XPoint32 YPoint32 XPoint33 YPoint33 XPoint34 YPoint34 XPoint35 YPoint35 XPoint36 YPoint36 XPoint37 YPoint37 XPoint38 YPoint38 XPoint39 YPoint39 XPoint40 YPoint40...
+		XPoint41 YPoint41 XPoint42 YPoint42 XPoint43 YPoint43 XPoint44 YPoint44 XPoint45 YPoint45 XPoint46 YPoint46 XPoint47 YPoint47 XPoint48 YPoint48 XPoint49 YPoint49 XPoint50 YPoint50...
+		XPoint51 YPoint51 XPoint52 YPoint52 XPoint53 YPoint53 XPoint54 YPoint54 XPoint55 YPoint55 XPoint56 YPoint56 XPoint57 YPoint57 XPoint58 YPoint58 XPoint59 YPoint59 XPoint60 YPoint60...
+		XPoint61 YPoint61 XPoint62 YPoint62 XPoint63 YPoint63 XPoint64 YPoint64 XPoint65 YPoint65 XPoint66 YPoint66 XPoint67 YPoint67 XPoint68 YPoint68 XPoint69 YPoint69 XPoint70 YPoint70...
+		XPoint71 YPoint71 XPoint72 YPoint72 XPoint73 YPoint73 XPoint74 YPoint74 XPoint75 YPoint75 XPoint76 YPoint76 XPoint77 YPoint77 XPoint78 YPoint78 XPoint79 YPoint79 XPoint80 YPoint80...
+		XPoint81 YPoint81 XPoint82 YPoint82 XPoint83 YPoint83 XPoint84 YPoint84 XPoint85 YPoint85 XPoint86 YPoint86 XPoint87 YPoint87 XPoint88 YPoint88 XPoint89 YPoint89 XPoint90 YPoint90...
+		XPoint91 YPoint91 XPoint92 YPoint92 XPoint93 YPoint93 XPoint94 YPoint94 XPoint95 YPoint95 XPoint96 YPoint96 XPoint97 YPoint97 XPoint98 YPoint98 XPoint99 YPoint99 XPoint100 YPoint100];
+
+    %%% Start of key point definitions
+	
+	AnteriorCarapaceX=coorddata(:,1).*LATVideoXYCal;
+	AnteriorCarapaceY=coorddata(:,2).*LATVideoXYCal;
+	PosteriorCarapaceX=coorddata(:,3).*LATVideoXYCal;
+	PosteriorCarapaceY=coorddata(:,4).*LATVideoXYCal;
+    NoseX=coorddata(:,5).*LATVideoXYCal;
+    NoseY=coorddata(:,6).*LATVideoXYCal;
+    
+	AnteriorCarapace=[AnteriorCarapaceX AnteriorCarapaceY];
+	PosteriorCarapace=[PosteriorCarapaceX PosteriorCarapaceY];
+    NosePoint=[NoseX NoseY];
+    
+    
+%%% Calculate COR (point of smallest cumulative displacement)  
+	
+    DispMatA=ones(rows-1,200);
+	
+	for p=2:1:rows
+        DispMatA=AllPointsXY(p,:)-AllPointsXY(p-1,:);
+		DispMatXvY(p-1,:)=DispMatA;%XY displacement matrix in meters
+    end
+
+% %---These lines seem odd & never are used anywhere else - commented out
+% %     %May 2009
+%     tpfMatXvY=ones(rows-1,200);
+% 	tpfMatXvY(:,:)=timeperframe;
+% 	VelMatXvY=DispMatXvY./tpfMatXvY;%XY velocity matrix in meters
+		
+    DispMatXvYsq=DispMatXvY.^2;%generate matrix of summed xy squared displacements
+    for a=1:1:100
+        DispMatNetSum(:,a)=DispMatXvYsq(:,a*2-1)+DispMatXvYsq(:,a*2);
+    end
+
+    %Gabe used the above code to replace 100 lines of text (first 7 lines seen below)    
+        %DispMatXvYsq=DispMatXvY.^2;%generate matrix of summed xy squared displacements
+        %DispMatNetSum(:,1)=DispMatXvYsq(:,1)+DispMatXvYsq(:,2);
+        %DispMatNetSum(:,2)=DispMatXvYsq(:,3)+DispMatXvYsq(:,4);
+        %DispMatNetSum(:,3)=DispMatXvYsq(:,5)+DispMatXvYsq(:,6);
+        %DispMatNetSum(:,4)=DispMatXvYsq(:,7)+DispMatXvYsq(:,8);
+        %DispMatNetSum(:,5)=DispMatXvYsq(:,9)+DispMatXvYsq(:,10);
+        %DispMatNetSum(:,6)=DispMatXvYsq(:,11)+DispMatXvYsq(:,12);
+
+    DispMatNet=DispMatNetSum.^0.5;% matrix of square roots of sum of squares = actual displacements
+	DispMatNetCum=sum(DispMatNet);
+	[MinSumPointVal,MinSumPointIndex] = min(DispMatNetCum); %returns value and index (matrix position) of minimum displacement point
+	DispMatNetColInit=DispMatNet(:,MinSumPointIndex);
+	[rows2,columns2]=size(DispMatNetColInit);
+	DispMatNetCol=zeros(rows2+1,1);
+		
+    for q2=2:1:(rows2+1)
+        DispMatNetCol(q2,:)=DispMatNetColInit(q2-1,:);%cumulative displacement matrix in meters
+    end
+	
+	DispMatNetColFinal=cumsum(DispMatNetCol); %Matrix of cumulative displacement in meters
+	DispMatNetColFinalBL=DispMatNetColFinal.*(1/BL); %Matrix of cumulative displacement in BL
+    [rowfordisp,colfordisp]=size(DispMatNetColFinalBL);
+    CumulativeDispBL=DispMatNetColFinalBL(rowfordisp,1); %Last value in matrix representing cumulative displacement (should be at least 3BL to use the trial)
+	CumulativeDisp=DispMatNetColFinal(rowfordisp,1); %Cumulative displacement in meters
+
+    %Calculate Velocity for Entire Sequence
+    [fdata,errcode,work]=gcvsplW(DispMatNetColFinal,2,3,0,1,rowfordisp);
+    VelAllGCV=fdata; %Smoothed velocity
+    VelAllGCV=VelAllGCV.*framerate; %Instantaneous Velocity in meters per second
+    VelAllGCVBL=VelAllGCV./BL; %Instantaneous velocity in BL/sec
+    
+    MeanVelAllGCV=mean(VelAllGCV); %Mean velocity (m/s) for entire sequence
+    MeanVelAllGCVBL=mean(VelAllGCVBL); %Mean velocity (BL/s) for entire sequence
+      
+    
+%%% Calculate the COR coordinates through sequence -(find both x & y columns of original data for assigned COR)
+    
+    valy=MinSumPointIndex*2;
+    valx=valy-1;
+    CofRcol1=interpolatedmatrix(:,valx); %finds column of original x-coordinate data
+    CofRcol2=interpolatedmatrix(:,valy); %finds column of original y-coordinate data
+    CofRcol1M=CofRcol1.*LATVideoXYCal; %converts to meters
+    CofRcol2M=CofRcol2.*LATVideoXYCal; %converts to meters
+    CORX=CofRcol1M;
+    CORY=CofRcol2M;
+    CORXYMatrix=[CORX CORY];
+
+%%% Calculates linear regression and correlation coefficient (r) for COR coord data (X=CofRcol1M; Y=CofRcol2M)
+    
+    rfromcorrelation=corrcoef(CofRcol1M,CofRcol2M);
+    disp(' ')
+    rsquare=rfromcorrelation(1,2)^2; % you see this and should write it down
+
+%%% Generates equation for line of best fit through data points
+    
+    corlineequation=polyfit(CofRcol1M,CofRcol2M,1);
+    yintercept=corlineequation(2);
+    slope=corlineequation(1);
+    fit=yintercept+slope*CofRcol1M;
+%     disp('COR (% of body length) = ')
+%     disp(MinSumPointIndex)
+	
+%%% Create vectors
+    
+    [rowsofCofRcolMatrix colsofCorRcolMatrix]=size(CofRcol1M); %Calculates how many rows (i.e., frames) in this sequence
+
+    %Posxaxis1
+    Posxaxis1=[1 0]; %Designates a vector for the + x-axis
+
+    %Posxaxis2
+    Posxaxis2=ones(rowsofCofRcolMatrix,2);
+    Posxaxis2(:,2)=0; %Designates a vector for the + x-axis in many rows
+
+    %Pathvector1
+    y1=yintercept+(CofRcol1M(1,1)*slope); %y-value for initial position of COR based on regression
+    y2=yintercept+(CofRcol1M(rowsofCofRcolMatrix,1)*slope); %y-value for final position of COR based on regression 
+    pathpoint1=[CofRcol1M(1,1) y1]; %initial coordinates of COR based on regression
+    pathpoint2=[CofRcol1M(rowsofCofRcolMatrix,1) y2]; %final coordinates of COR based on regression
+    pathpoint1trans=pathpoint1-pathpoint1; %pathpoint1trans is pathpoint1 moved to the origin
+    pathpoint2trans=pathpoint2-pathpoint1; %pathpoint2trans is adjusted accordly (to above)
+    Pathvector1=pathpoint2trans-pathpoint1trans; %Designates a vector in the direction of COR movement based on linear regression
+
+    %Pathvector2
+    %Create a path vector based on the initial and final coordinates of the COR
+    CORinitial=[CofRcol1M(1,1) CofRcol2M(1,1)];
+    CORfinal=[CofRcol1M(rowsofCofRcolMatrix,1) CofRcol2M(rowsofCofRcolMatrix,1)];
+    CORinitialtrans=CORinitial-CORinitial;
+    CORfinaltrans=CORfinal-CORinitial;
+    Pathvector2=CORfinaltrans-CORinitialtrans; %Designates a vector in the direction of COR movement based on actual position
+
+    %Midlinevector
+    PosteriorCarapacetrans=PosteriorCarapace-PosteriorCarapace;
+    AnteriorCarapacetrans=AnteriorCarapace-PosteriorCarapace;
+    Midlinevector=AnteriorCarapacetrans-PosteriorCarapacetrans; %Designates vector along midline of carapace with posterior point at origin
+
+    %HeadVector (for calculating Head Pitch)
+    NosePointTrans=NosePoint-AnteriorCarapace;
+    AnteriorCarapaceTransHeadPitch=AnteriorCarapace-AnteriorCarapace;
+    HeadvectorTrans=NosePointTrans-AnteriorCarapaceTransHeadPitch; %Designates a vector along head from Ant Plastron to nose with Ant Plastron at origin
+        
+     %Vector45
+    %Create a vector at 45 degrees from the positive x-axis in quadrant I
+    Vector45=ones(rowsofCofRcolMatrix, 2);
+    Vector45(:,:)=5;
+
+    %PosVector90
+    %Create a vector 90 degrees from the positive x-axis (in the +y direction)
+    PosVector90=ones(rowsofCofRcolMatrix, 2);
+    PosVector90(:,1)=0;
+    PosVector90(:,2)=1;
+
+    %NegVector90
+    %Create a vector 90 degrees from the positive x-axis (in the -y direction)
+    NegVector90=ones(rowsofCofRcolMatrix, 2);
+    NegVector90(:,1)=0;
+    NegVector90(:,2)=-1;   
+    
+%%% Create abbreviates for vectors
+    
+    %Posxaxis1
+    %Posxaxis2
+    Pv1=Pathvector1;
+    Pv2=Pathvector2;
+    %Midlinevector
+    %PosVector90
+    %NegVector90
+
+%%% Calculate angles between vectors
+    
+    %thetaPv1Pv2
+    %Calculates the magnitude of the angle between the two path vectors
+    thetaPv1Pv2=gabang(Pv1, Pv2); %should be very small  -- Save this it is the angle difference btwn two methods of path calculation
+    disp(strcat('Angle between the two path vectors =    ',num2str(thetaPv1Pv2)))
+    disp('')
+    disp(' ')
+    disp('This angle should be very small!')
+    pause(0.75)
+  
+    %thetaPosxaxis1Pv1
+    %Calculates the angle of the angle between the Posxaxis1 and Pathvector1
+    thetaPosxaxis1Pv1=gabang(Posxaxis1, Pv1);
+
+    %thetaPosxaxis1Pv1sign 
+    %Takes into account the sign of the angle between Pv1 and the Posxaxis1 (ie,+ x-axis)
+    signofslope=slope./(abs(slope)); %will equal either a postive or negative one
+    thetaPosxaxis1Pv1sign=thetaPosxaxis1Pv1.*signofslope; %angle in degrees
+
+    %Midlinevectorrot
+    %Midlinevector for all frames rotated by the opposite of the angle calculated in "thetaPosxaxisPv1sign"
+    A=thetaPosxaxis1Pv1sign.*(pi/180); %converts angle into radians
+    B=[cos(A) -sin(A); sin(A) cos(A)]; %rotates object clockwise around the origin, so a positive angle rotates clockwise and a negative angle rotates counterclockwise
+    Midlinevectorrot=Midlinevector*B; %orientation of midline adjusted for deviation of pathvector1 from + x-axis
+
+    %HeadVectorRot
+    HeadVectorRot=HeadvectorTrans*B;
+
+    %thetaPosxaxis2Midlinevectorrot
+    %Calculates the angle between the Posxaxis2 and Midlinevectorrot for all
+    %frames; the angle between the + x-axis and the adjusted turtle midline
+    thetaPosxaxis2Midlinevectorrot=gabang(Posxaxis2, Midlinevectorrot);
+  
+    %thetaPosxaxis2HeadVectorRot
+    %Calculates the angle between the Posxaxis2 and HeadVectorRot for all
+    %frames; the angle between the + x-axis and the adjusted head vector
+    thetaPosxaxis2HeadVectorRot=gabang(Posxaxis2, HeadVectorRot); 
+   
+    %thetaVector45MidlinevectorrotSign
+    %Use Vector45 to determine whether the angle "thetaPosxaxisMidlinevectorrot" is positive or negative;
+    %Calculate the angle between vector45 and Midlinevectorrot; if this is greater than 45 degrees than the value of the angle will be negative
+    thetaVector45Midlinevectorrot=gabang(Vector45, Midlinevectorrot);
+    thetaVector45MidlinevectorrotSign=(45-thetaVector45Midlinevectorrot)./(abs(45-thetaVector45Midlinevectorrot)); %determines whether "thetaPosxaxisMidlinevectorrot"
+    %will be positive or negative
+  
+     %thetaVector45HeadVectorRotSign
+    %Use Vector45 to determine whether the angle "thetaPosxaxis2HeadVectorRot" is positive or negative;
+    %Calculate the angle between vector45 and HeadVectorRot; if this is greater than 45 degrees than the value of the angle will be negative
+    thetaVector45HeadVectorRot=gabang(Vector45, HeadVectorRot);
+    thetaVector45HeadVectorRotSign=(45-thetaVector45HeadVectorRot)./(abs(45-thetaVector45HeadVectorRot)); %determines whether "thetaPosxaxisHeadVectorRot"
+    %will be positive or negative
+ 
+    %thetaPosxaxis2MidlinevectorrotSign
+    %The angle between the turtle's path and midline with correct sign values
+    thetaPosxaxis2MidlinevectorrotSign=thetaPosxaxis2Midlinevectorrot.*thetaVector45MidlinevectorrotSign;
+    PitchBody=thetaPosxaxis2MidlinevectorrotSign;
+    
+     %thetaPosxaxis2HeadVectorRotSign
+    %The angle between the turtle's path and head with correct sign values
+    thetaPosxaxis2HeadVectorRotSign=thetaPosxaxis2HeadVectorRot.*thetaVector45HeadVectorRotSign;
+    PitchHeadPath=thetaPosxaxis2HeadVectorRotSign;
+    
+    %%% Calculates the heave of the COR
+    %CofRrotatedY
+    CofR=[CofRcol1M (CofRcol2M-yintercept)]; %the CofR x and y-values combined into one matrix
+    CofRrotated=CofR*B; %Rotate this matrix so that points straddle the x-axis like they straddle the regression line
+    CofRrotatedX=CofRrotated(:,1);
+    CofRrotatedY=CofRrotated(:,2);
+    %NEED TO FIGURE OUT WHY SUBTRACTING YINTERCEPT FROM Y-VALUES APPEARS TO HAVE CHANGED THE SCALE SO DRASTICALLY - May not actually be a problem!!!
+    HeaveLatCOR=CofRrotatedY;
+    HeaveLatCORBL=HeaveLatCOR.*(1/BL);
+
+%%%% To Get PitchHeadBody
+    PitchHeadBody=PitchHeadPath-PitchBody;
+
+    
+%------ Plotting ------
+FrameNumber=ones(rowfordisp,1);
+    for fm=1:1:rowfordisp
+        FrameNumber(fm,1)=fm;
+    end
+
+scrsz=get(0,'ScreenSize');
+figure('Position',[75 scrsz(4)/20 scrsz(3)/1.1 scrsz(4)/1.2],'Name',...
+    'Lateral Trial Criterion Check','NumberTitle','off');    
+
+plot(CofRcol1M,fit,'-k','LineWidth',2);
+hold;
+clc
+plot(CofRcol1M,CofRcol2M,'ko','MarkerSize',5,'MarkerEdgeColor','k',...
+    'MarkerFaceColor','k'),title('Regression of Lateral COR'),...
+    xlabel('Lat COR X'),ylabel('Lat COR Y');legend(strcat('r^2=',num2str(rsquare)),strcat('Cumul Disp= ',num2str(CumulativeDispBL),'BL'));
+pause(1)
+
+%------ Save Figure ------
+FigureSaveName=LatDigDataName(1:9);
+FigureSaveName=strcat(FigureSaveName,'_LatCheck');
+
+figure_handle=gcf; %Returns the current figure's handle
+%Now assign this M-file to the CloseRequestFcn of a figure: 
+set(figure_handle,'CloseRequestFcn','Angie_Fig_Close'); %Asks to Save or Not before closing figure   
+%------ END Save Figure ------    
+
+
+elseif choice==3 %Process ventral file
+%------ Loading digitized file ------
+[VenDigDataName,VenDigDataPath]=uigetfile('*v*xypts.csv','Find Your Digitized Data from Ventral View','*v*xypts.csv'); %Only looks for files with 'v' in it
+cd(VenDigDataPath);
+VenDigDataPreMatrix=csvread(VenDigDataName,1,0);
+    for TotalVenCols=1:1:22 %22 here because there are 11 points in ventral file
+    VenDigDataMatrix(:,TotalVenCols)=VenDigDataPreMatrix(:,TotalVenCols);
+    end
+%------ Done Loading digitized file ------
+
+%-------------Check for NaN--------------------------------
+NaNCheckVenDig=find(isnan(VenDigDataMatrix));
+
+if NaNCheckVenDig>0
+%    disp('Ventral Coordinate file is digitized incorrectly!');beep;
+    beep;
+    Venmsgbox=msgbox('Ventral Coordinate file Invalid','You Digitized Wrong! Be More Careful Next Time Buddy!','warn');
+    uiwait(Venmsgbox);
+else 
+    disp('Ventral Coordinate file is valid and loaded')
+end
+
+pause(0.75)
+%--------------End Check for NaN--------------------------- 
+
+%------Which turtle? - This determines the carapace length to use---------
+    clc
+     disp(' ')
+
+        choice=VenDigDataName(1,1:4);
+        if choice=='cp01'%1  %Cp01
+            CL=0.0993; turtle='CP01';
+        elseif choice=='cp02'%2  %Cp02
+            CL=0.1225; turtle='CP02';
+        elseif choice=='cp04'%3  %Cp04
+            CL=0.1127; turtle='CP04';
+        elseif choice=='cp05'%4  %Cp05
+            CL=0.1375; turtle='Cp05';
+        end
+   disp(strcat('You are working on  ',turtle));
+   
+   BL=CL;
+%Is turtle swimming left-to-right (X = 0) or right-to-left (X = 2)
+%the 8 in the vendigdataName tells you how long the name is
+    if VenDigDataName(1,1:10)=='cp02s2k02v';day=1;x=2;startframe=1;endframe=89;cycles=3;cut1=1;cut2=30;cut3=57;cut4=89;
+elseif VenDigDataName(1,1:10)=='cp02s2k03v';day=1;x=0;startframe=1;endframe=98;cycles=3;cut1=1;cut2=33;cut3=63;cut4=98;
+elseif VenDigDataName(1,1:10)=='cp02s2k04v';day=1;x=0;startframe=1;endframe=93;cycles=3;cut1=1;cut2=32;cut3=62;cut4=93;
+elseif VenDigDataName(1,1:10)=='cp02s2k05v';day=1;x=0;startframe=1;endframe=102;cycles=3;cut1=1;cut2=30;cut3=63;cut4=102;
+elseif VenDigDataName(1,1:10)=='cp02s2k07v';day=1;x=0;startframe=1;endframe=99;cycles=3;cut1=1;cut2=31;cut3=64;cut4=99;
+elseif VenDigDataName(1,1:10)=='cp02s2k08v';day=1;x=0;startframe=1;endframe=93;cycles=3;cut1=1;cut2=31;cut3=63;cut4=93;
+elseif VenDigDataName(1,1:10)=='cp02s2k09v';day=1;x=0;startframe=1;endframe=78;cycles=3;cut1=1;cut2=26;cut3=53;cut4=78;
+elseif VenDigDataName(1,1:10)=='cp02s2k11v';day=1;x=0;startframe=1;endframe=79;cycles=3;cut1=1;cut2=27;cut3=52;cut4=79;
+elseif VenDigDataName(1,1:10)=='cp04s2k02v';day=1;x=0;startframe=1;endframe=79;cycles=3;cut1=1;cut2=28;cut3=55;cut4=79;
+elseif VenDigDataName(1,1:10)=='cp04s2k03v';day=1;x=0;startframe=1;endframe=77;cycles=3;cut1=1;cut2=30;cut3=58;cut4=77;
+elseif VenDigDataName(1,1:10)=='cp04s2k04v';day=1;x=0;startframe=1;endframe=93;cycles=3;cut1=1;cut2=28;cut3=62;cut4=93;
+elseif VenDigDataName(1,1:10)=='cp04s2k05v';day=1;x=0;startframe=1;endframe=76;cycles=3;cut1=1;cut2=27;cut3=56;cut4=76;
+elseif VenDigDataName(1,1:10)=='cp04s2k06v';day=1;x=0;startframe=1;endframe=80;cycles=3;cut1=1;cut2=28;cut3=52;cut4=80;
+elseif VenDigDataName(1,1:10)=='cp04s2k08v';day=1;x=0;startframe=1;endframe=99;cycles=3;cut1=1;cut2=33;cut3=67;cut4=99;
+elseif VenDigDataName(1,1:10)=='cp04s2k10v';day=1;x=0;startframe=1;endframe=78;cycles=3;cut1=1;cut2=28;cut3=58;cut4=78;
+elseif VenDigDataName(1,1:10)=='cp04s2k12v';day=1;x=0;startframe=1;endframe=78;cycles=3;cut1=1;cut2=28;cut3=55;cut4=78;
+elseif VenDigDataName(1,1:10)=='cp04s2k13v';day=1;x=0;startframe=1;endframe=84;cycles=3;cut1=1;cut2=29;cut3=58;cut4=84;
+elseif VenDigDataName(1,1:10)=='cp05s2k01v';day=1;x=0;startframe=1;endframe=92;cycles=3;cut1=1;cut2=31;cut3=62;cut4=92;
+elseif VenDigDataName(1,1:10)=='cp05s2k02v';day=1;x=0;startframe=1;endframe=104;cycles=3;cut1=1;cut2=35;cut3=70;cut4=104;
+elseif VenDigDataName(1,1:10)=='cp05s2k03v';day=1;x=0;startframe=1;endframe=70;cycles=3;cut1=1;cut2=27;cut3=50;cut4=70;
+elseif VenDigDataName(1,1:10)=='cp05s2k07v';day=1;x=0;startframe=1;endframe=78;cycles=3;cut1=1;cut2=27;cut3=52;cut4=78;
+elseif VenDigDataName(1,1:10)=='cp05s2k09v';day=1;x=0;startframe=1;endframe=77;cycles=3;cut1=1;cut2=26;cut3=52;cut4=77;
+elseif VenDigDataName(1,1:10)=='cp05s2k10v';day=1;x=2;startframe=1;endframe=82;cycles=3;cut1=1;cut2=28;cut3=55;cut4=82;
+elseif VenDigDataName(1,1:10)=='cp05s2k11v';day=1;x=0;startframe=1;endframe=69;cycles=3;cut1=1;cut2=24;cut3=47;cut4=69;
+elseif VenDigDataName(1,1:10)=='cp05s2k13v';day=1;x=0;startframe=1;endframe=117;cycles=3;cut1=1;cut2=37;cut3=73;cut4=117;
+elseif VenDigDataName(1,1:10)=='cp05s2k14v';day=1;x=0;startframe=1;endframe=84;cycles=3;cut1=1;cut2=28;cut3=56;cut4=84;
+%elseif VenDigDataName(1,1:10)=='cp05s2k16v';day=1;x=0;startframe=1;endframe=111;cycles=3;cut1=1;cut2=34;cut3=74;cut4=111;
+%elseif VenDigDataName(1,1:8)=='cp05k11v';day=1;x=0;startframe=1;endframe=100;cycles=3;cut1=1;cut2=32;cut3=63;cut4=100;
+%elseif VenDigDataName(1,1:8)=='cp05k12v';day=1;x=0;startframe=1;endframe=87;cycles=3;cut1=1;cut2=29;cut3=60;cut4=87;
+%elseif VenDigDataName(1,1:8)=='cp44st12a';day=7;x=2;startframe=62;endframe=167;cycles=3;cut1=62;cut2=104;cut3=138;cut4=167;
+%elseif VenDigDataName(1,1:8)=='cp44st12b';day=7;x=0;startframe=60;endframe=165;cycles=3;cut1=60;cut2=92;cut3=130;cut4=165;
+%elseif VenDigDataName(1,1:8)=='cp44st13a';day=7;x=2;startframe=19;endframe=118;cycles=3;cut1=19;cut2=48;cut3=81;cut4=118;
+%elseif VenDigDataName(1,1:9)=='cp66st17a';day=9;x=2;startframe=5;endframe=131;cycles=3;cut1=5;cut2=46;cut3=89;cut4=131;
+%elseif VenDigDataName(1,1:9)=='cp66st18a';day=9;x=0;startframe=64;endframe=198;cycles=3;cut1=64;cut2=111;cut3=152;cut4=198;
+end
+
+%------ END - Which turtle? ------
+
+%------ Load calibration data ------
+
+    %framerate=input('Enter EFFECTIVE framing rate correcting for skipped frames (fr/sec):  ');
+    framerate=100;
+    timeperframe=(1/framerate);
+    disp(' ')
+    clc
+    disp('Framerate in code is 100fps - if this is not right, adjust it in the code')
+    disp(' ')
+    disp(' ')
+    pause(0.75)
+    disp(' ')
+   
+ %What calibration?
+        if day==1  
+            LatcalName='MeKeelLatCalxypts.csv';VentcalName='MeKeelVenCalxypts.csv';filmday='Filming Day #1';
+        end
+
+Latcal=csvread(LatcalName,1,0,[1,0,1,3]);
+Ventcal=csvread(VentcalName,1,0,[1,0,1,3]);
+clc
+disp(' ')
+disp('Digitized Coordinates and Calibration loaded for:')
+disp(' ')
+disp(turtle)
+disp(' ')
+disp(filmday)
+pause(0.5)
+
+
+    VENxcaldiff=Ventcal(1,3)-Ventcal(1,1);
+    VENycaldiff=Ventcal(1,4)-Ventcal(1,2);
+    VENpixeldist=sqrt((VENxcaldiff^2)+(VENycaldiff^2));
+    VENVideoXYCal=CalibL./VENpixeldist; %multiply pixel values by this conversion factor to get meters
+
+    LATxcaldiff=Latcal(1,3)-Latcal(1,1);
+    LATycaldiff=Latcal(1,4)-Latcal(1,2);
+    LATpixeldist=sqrt((LATxcaldiff^2)+(LATycaldiff^2));
+    LATVideoXYCal=CalibL./LATpixeldist; %multiply pixel values by this conversion factor to get meters
+%------ Done Loading Calibration ------
+
+%------ Correct for Turtle Swimming Right-to-Left (by making it appear that
+%turtle is swimming left-to-right)
+
+    coorddata=VenDigDataMatrix;
+    
+    [rows,columns]=size(coorddata); % calculates the size of the coordata matrix 
+    disp(' ')
+    disp(' ')
+    disp(' ')
+%   x=input('Is turtle swimming to the RIGHT (type "0") or LEFT (type "2")?  ','s');
+%   y=str2num(x);
+    y=x;
+    z=1-y;
+    coorddata=coorddata.*z;
+ 
+    %%% Assign origin (left point of calibration grid) and adjust coordinates
+    
+    for m=1:2:21 
+        coorddata(:,m)=coorddata(:,m)-Ventcal(1,1);
+    end
+   
+    for m=2:2:22 
+        coorddata(:,m)=coorddata(:,m)-Ventcal(1,2);
+    end
+%------ DONE Correcting for Direction of Swimming ------
+
+%------ SPECIFY LENGTH OF WHOLE SEQUENCE TO PROCESS ------
+    %Above rows and columns defines size of coorddata
+    
+% prompt = {'Start Frame:','End Frame:'};
+% dlg_title = 'Range to Use For Full Sequence';
+% num_lines = 1;
+% def = {'1',num2str(rows)};
+% answer = inputdlg(prompt,dlg_title,num_lines,def);
+% 
+% answer=str2double(answer);
+% startframe=answer(1:1);
+% endframe=answer(2:2);
+
+
+coorddata=coorddata(startframe:endframe,:);
+disp(' ')
+disp(' ')
+disp('Coordinate matrix has been reconfigured to use frame');disp(' '); ...
+    disp(startframe);disp('to');disp(' ');disp(endframe);disp('to calculate values for the whole trial sequence');
+pause(2.5)
+[rows,columns]=size(coorddata); %gets new size of coorddata
+
+%------ Calculate the COR position - this option copied from centrotAngieRevisedSAT
+
+%%% Generate completely interpolated matrix
+    interpolatedmatrix=ones(rows,200);
+    interpolatedmatrix(:,1)=coorddata(:,3);
+    interpolatedmatrix(:,2)=coorddata(:,4);
+    interpolatedmatrix(:,199)=coorddata(:,5);	
+    interpolatedmatrix(:,200)=coorddata(:,6);
+
+    Xmultiplier=((coorddata(:,5)-coorddata(:,3))/99);
+    Ymultiplier=((coorddata(:,6)-coorddata(:,4))/99);
+
+    for v=(3:2:197)
+        interpolatedmatrix(:,v)=Xmultiplier+interpolatedmatrix(:,v-2);
+    end
+
+    for vv=(4:2:198)
+        interpolatedmatrix(:,vv)=Ymultiplier+interpolatedmatrix(:,vv-2);
+    end
+
+%%% Designate points (x & y coords) from interpolated matrix and calibrate to meters
+    
+    for i=1:100 %Creates x-coordinates for 100 points
+        temp1=['XPoint', int2str(i), '=interpolatedmatrix(:,i*2-1).*VENVideoXYCal'];
+        eval(temp1);
+    end
+
+    for i=1:100 %Creates y-coordinates for 100 points 
+        temp2=['YPoint', int2str(i), '=interpolatedmatrix(:,i*2).*VENVideoXYCal'];
+        eval(temp2);
+    end
+
+    clc %to clear the window of the huge matrices above
+    
+    %Gabe created the above code to replace 200 lines of text (first 6 lines seen below)
+        %Point1X=interpolatedmatrix(:,1).*VideoXYCal;
+        %Point1Y=interpolatedmatrix(:,2).*VideoXYCal;
+        %Point2X=interpolatedmatrix(:,3).*VideoXYCal;
+        %Point2Y=interpolatedmatrix(:,4).*VideoXYCal;
+        %Point3X=interpolatedmatrix(:,5).*VideoXYCal;
+        %Point3Y=interpolatedmatrix(:,6).*VideoXYCal;
+
+    AllPointsXY=[XPoint1 YPoint1 XPoint2 YPoint2 XPoint3 YPoint3 XPoint4 YPoint4 XPoint5 YPoint5 XPoint6 YPoint6 XPoint7 YPoint7 XPoint8 YPoint8 XPoint9 YPoint9 XPoint10 YPoint10... 
+        XPoint11 YPoint11 XPoint12 YPoint12 XPoint13 YPoint13 XPoint14 YPoint14 XPoint15 YPoint15 XPoint16 YPoint16 XPoint17 YPoint17 XPoint18 YPoint18 XPoint19 YPoint19 XPoint20 YPoint20...
+		XPoint21 YPoint21 XPoint22 YPoint22 XPoint23 YPoint23 XPoint24 YPoint24 XPoint25 YPoint25 XPoint26 YPoint26 XPoint27 YPoint27 XPoint28 YPoint28 XPoint29 YPoint29 XPoint30 YPoint30...
+		XPoint31 YPoint31 XPoint32 YPoint32 XPoint33 YPoint33 XPoint34 YPoint34 XPoint35 YPoint35 XPoint36 YPoint36 XPoint37 YPoint37 XPoint38 YPoint38 XPoint39 YPoint39 XPoint40 YPoint40...
+		XPoint41 YPoint41 XPoint42 YPoint42 XPoint43 YPoint43 XPoint44 YPoint44 XPoint45 YPoint45 XPoint46 YPoint46 XPoint47 YPoint47 XPoint48 YPoint48 XPoint49 YPoint49 XPoint50 YPoint50...
+		XPoint51 YPoint51 XPoint52 YPoint52 XPoint53 YPoint53 XPoint54 YPoint54 XPoint55 YPoint55 XPoint56 YPoint56 XPoint57 YPoint57 XPoint58 YPoint58 XPoint59 YPoint59 XPoint60 YPoint60...
+		XPoint61 YPoint61 XPoint62 YPoint62 XPoint63 YPoint63 XPoint64 YPoint64 XPoint65 YPoint65 XPoint66 YPoint66 XPoint67 YPoint67 XPoint68 YPoint68 XPoint69 YPoint69 XPoint70 YPoint70...
+		XPoint71 YPoint71 XPoint72 YPoint72 XPoint73 YPoint73 XPoint74 YPoint74 XPoint75 YPoint75 XPoint76 YPoint76 XPoint77 YPoint77 XPoint78 YPoint78 XPoint79 YPoint79 XPoint80 YPoint80...
+		XPoint81 YPoint81 XPoint82 YPoint82 XPoint83 YPoint83 XPoint84 YPoint84 XPoint85 YPoint85 XPoint86 YPoint86 XPoint87 YPoint87 XPoint88 YPoint88 XPoint89 YPoint89 XPoint90 YPoint90...
+		XPoint91 YPoint91 XPoint92 YPoint92 XPoint93 YPoint93 XPoint94 YPoint94 XPoint95 YPoint95 XPoint96 YPoint96 XPoint97 YPoint97 XPoint98 YPoint98 XPoint99 YPoint99 XPoint100 YPoint100];
+
+%%% Start of key point definitions
+	
+    NosePointX=coorddata(:,1).*VENVideoXYCal;
+	NosePointY=coorddata(:,2).*VENVideoXYCal;
+	AnteriorPlastronX=coorddata(:,3).*VENVideoXYCal;
+	AnteriorPlastronY=coorddata(:,4).*VENVideoXYCal;
+	PosteriorPlastronX=coorddata(:,5).*VENVideoXYCal;
+	PosteriorPlastronY=coorddata(:,6).*VENVideoXYCal;
+	RShoulderX=coorddata(:,7).*VENVideoXYCal;
+	RShoulderY=coorddata(:,8).*VENVideoXYCal;
+	RElbowPointX=coorddata(:,9).*VENVideoXYCal;
+	RElbowPointY=coorddata(:,10).*VENVideoXYCal;
+	LShoulderX=coorddata(:,11).*VENVideoXYCal;
+	LShoulderY=coorddata(:,12).*VENVideoXYCal;
+	LElbowPointX=coorddata(:,13).*VENVideoXYCal;
+	LElbowPointY=coorddata(:,14).*VENVideoXYCal;
+	RHipPointX=coorddata(:,15).*VENVideoXYCal;
+	RHipPointY=coorddata(:,16).*VENVideoXYCal;
+	RKneePointX=coorddata(:,17).*VENVideoXYCal;
+	RKneePointY=coorddata(:,18).*VENVideoXYCal;
+    LHipPointX=coorddata(:,19).*VENVideoXYCal;
+	LHipPointY=coorddata(:,20).*VENVideoXYCal;
+	LKneePointX=coorddata(:,21).*VENVideoXYCal;
+	LKneePointY=coorddata(:,22).*VENVideoXYCal;
+	
+	NosePoint=[NosePointX NosePointY];
+	AnteriorPlastron=[AnteriorPlastronX AnteriorPlastronY];
+	PosteriorPlastron=[PosteriorPlastronX PosteriorPlastronY];
+	RShoulder=[RShoulderX RShoulderY];
+	RElbowPoint=[RElbowPointX RElbowPointY];
+	LShoulder=[LShoulderX LShoulderY];
+	LElbowPoint=[LElbowPointX LElbowPointY];
+	RHipPoint=[RHipPointX RHipPointY];
+	RKneePoint=[RKneePointX RKneePointY];
+	LHipPoint=[LHipPointX LHipPointY];
+	LKneePoint=[LKneePointX LKneePointY];
+
+%%% Calculate COR (point of smallest cumulative displacement)  
+	
+    DispMatA=ones(rows-1,200);
+	
+	for p=2:1:rows
+        DispMatA=AllPointsXY(p,:)-AllPointsXY(p-1,:);
+		DispMatXvY(p-1,:)=DispMatA;%XY displacement matrix in meters
+    end
+	
+%     %---These lines seem odd & never are used anywhere else - commented out
+%     %May 2009
+% 	tpfMatXvY=ones(rows-1,200);
+% 	tpfMatXvY(:,:)=timeperframe;
+% 	VelMatXvY=DispMatXvY./tpfMatXvY;%XY velocity matrix in meters
+		
+    DispMatXvYsq=DispMatXvY.^2;%generate matrix of summed xy squared displacements
+    for a=1:1:100
+        DispMatNetSum(:,a)=DispMatXvYsq(:,a*2-1)+DispMatXvYsq(:,a*2);
+    end
+
+    %Gabe used the above code to replace 100 lines of text (first 7 lines seen below)    
+        %DispMatXvYsq=DispMatXvY.^2;%generate matrix of summed xy squared displacements
+        %DispMatNetSum(:,1)=DispMatXvYsq(:,1)+DispMatXvYsq(:,2);
+        %DispMatNetSum(:,2)=DispMatXvYsq(:,3)+DispMatXvYsq(:,4);
+        %DispMatNetSum(:,3)=DispMatXvYsq(:,5)+DispMatXvYsq(:,6);
+        %DispMatNetSum(:,4)=DispMatXvYsq(:,7)+DispMatXvYsq(:,8);
+        %DispMatNetSum(:,5)=DispMatXvYsq(:,9)+DispMatXvYsq(:,10);
+        %DispMatNetSum(:,6)=DispMatXvYsq(:,11)+DispMatXvYsq(:,12);
+
+    DispMatNet=DispMatNetSum.^0.5;% matrix of square roots of sum of squares = actual displacements
+	DispMatNetCum=sum(DispMatNet);
+	[MinSumPointVal,MinSumPointIndex] = min(DispMatNetCum); %returns value and index (matrix position) of minimum displacement point
+	DispMatNetColInit=DispMatNet(:,MinSumPointIndex);
+	[rows2,columns2]=size(DispMatNetColInit);
+	DispMatNetCol=zeros(rows2+1,1);
+		
+    for q2=2:1:(rows2+1)
+        DispMatNetCol(q2,:)=DispMatNetColInit(q2-1,:);%cumulative displacement matrix in meters
+    end
+	
+	DispMatNetColFinal=cumsum(DispMatNetCol); %Matrix of cumulative displacement in meters
+	DispMatNetColFinalBL=DispMatNetColFinal.*(1/BL); %Matrix of cumulative displacement in BL
+    [rowfordisp,colfordisp]=size(DispMatNetColFinalBL);
+    CumulativeDispBL=DispMatNetColFinalBL(rowfordisp,1); %Last value in matrix representing cumulative displacement (should be at least 3BL to use the trial)
+	CumulativeDisp=DispMatNetColFinal(rowfordisp,1); %Cumulative displacement in meters
+    
+    %Calculate Velocity for Entire Sequence
+    [fdata,errcode,work]=gcvsplW(DispMatNetColFinal,2,3,0,1,rowfordisp);
+    VelAllGCV=fdata; %Smoothed velocity
+    VelAllGCV=VelAllGCV.*framerate; %Instantaneous Velocity in meters per second
+    VelAllGCVBL=VelAllGCV./BL; %Instantaneous velocity in BL/sec
+    
+    MeanVelAllGCV=mean(VelAllGCV); %Mean velocity (m/s) for entire sequence
+    MeanVelAllGCVBL=mean(VelAllGCVBL); %Mean velocity (BL/s) for entire sequence
+    
+    
+%%% Calculate the COR coordinates through sequence -(find both x & y columns of original data for assigned COR)
+    
+    valy=MinSumPointIndex*2;
+    valx=valy-1;
+    CofRcol1=interpolatedmatrix(:,valx); %finds column of original x-coordinate data
+    CofRcol2=interpolatedmatrix(:,valy); %finds column of original y-coordinate data
+    CofRcol1M=CofRcol1.*VENVideoXYCal; %converts to meters, this is the COR X through time
+    CofRcol2M=CofRcol2.*VENVideoXYCal; %converts to meters, this is the COR Y through time
+    CORX=CofRcol1M;
+    CORY=CofRcol2M;
+    CORXYMatrix=[CORX CORY];
+
+%%% Calculates linear regression and correlation coefficient (r) for COR coord data (X=CofRcol1M; Y=CofRcol2M)
+    
+    rfromcorrelation=corrcoef(CofRcol1M,CofRcol2M);
+    disp(' ')
+    rsquare=rfromcorrelation(1,2)^2; % you see this and should write it down
+
+%%% Generates equation for line of best fit through data points
+    
+    corlineequation=polyfit(CofRcol1M,CofRcol2M,1);
+    yintercept=corlineequation(2);
+    slope=corlineequation(1);
+    fit=yintercept+slope*CofRcol1M;
+%     disp('COR (% of body length) = ')
+%     disp(MinSumPointIndex)
+
+    %%% Create vectors
+    
+    [rowsofCofRcolMatrix colsofCorRcolMatrix]=size(CofRcol1M); %Calculates how many rows (i.e., frames) in this sequence
+
+    %Posxaxis1
+    Posxaxis1=[1 0]; %Designates a vector for the + x-axis
+
+    %Posxaxis2
+    Posxaxis2=ones(rowsofCofRcolMatrix,2);
+    Posxaxis2(:,2)=0; %Designates a vector for the + x-axis in many rows
+
+    %Pathvector1
+    y1=yintercept+(CofRcol1M(1,1)*slope); %y-value for initial position of COR based on regression
+    y2=yintercept+(CofRcol1M(rowsofCofRcolMatrix,1)*slope); %y-value for final position of COR based on regression 
+    pathpoint1=[CofRcol1M(1,1) y1]; %initial coordinates of COR based on regression
+    pathpoint2=[CofRcol1M(rowsofCofRcolMatrix,1) y2]; %final coordinates of COR based on regression
+    pathpoint1trans=pathpoint1-pathpoint1; %pathpoint1trans is pathpoint1 moved to the origin
+    pathpoint2trans=pathpoint2-pathpoint1; %pathpoint2trans is adjusted accordly (to above)
+    Pathvector1=pathpoint2trans-pathpoint1trans; %Designates a vector in the direction of COR movement based on linear regression
+
+    %Pathvector2
+    %Create a path vector based on the initial and final coordinates of the COR
+    CORinitial=[CofRcol1M(1,1) CofRcol2M(1,1)];
+    CORfinal=[CofRcol1M(rowsofCofRcolMatrix,1) CofRcol2M(rowsofCofRcolMatrix,1)];
+    CORinitialtrans=CORinitial-CORinitial;
+    CORfinaltrans=CORfinal-CORinitial;
+    Pathvector2=CORfinaltrans-CORinitialtrans; %Designates a vector in the direction of COR movement based on actual position
+
+    %Midlinevector
+    PosteriorPlastrontrans=PosteriorPlastron-PosteriorPlastron;
+    AnteriorPlastrontrans=AnteriorPlastron-PosteriorPlastron;
+    Midlinevector=AnteriorPlastrontrans-PosteriorPlastrontrans; %Designates vector along midline of plastron with posterior point at origin
+
+    %HeadVector (for calculating Head Yaw)
+    NosePointTrans=NosePoint-AnteriorPlastron;
+    AnteriorPlastronTransHeadYaw=AnteriorPlastron-AnteriorPlastron;
+    HeadvectorTrans=NosePointTrans-AnteriorPlastronTransHeadYaw; %Designates a vector along head from Ant Plastron to nose with Ant Plastron at origin
+        
+    %Vector45
+    %Create a vector at 45 degrees from the positive x-axis in quadrant I
+    Vector45=ones(rowsofCofRcolMatrix, 2);
+    Vector45(:,:)=5;
+
+    %PosVector90
+    %Create a vector 90 degrees from the positive x-axis (in the +y direction)
+    PosVector90=ones(rowsofCofRcolMatrix, 2);
+    PosVector90(:,1)=0;
+    PosVector90(:,2)=1;
+
+    %NegVector90
+    %Create a vector 90 degrees from the positive x-axis (in the -y direction)
+    NegVector90=ones(rowsofCofRcolMatrix, 2);
+    NegVector90(:,1)=0;
+    NegVector90(:,2)=-1;
+
+%%% Create abbreviates for vectors
+    
+    %Posxaxis1
+    %Posxaxis2
+    Pv1=Pathvector1;
+    Pv2=Pathvector2;
+    %Midlinevector
+    %PosVector90
+    %NegVector90
+
+%%% Calculate angles between vectors
+    
+    %thetaPv1Pv2
+    %Calculates the magnitude of the angle between the two path vectors
+    thetaPv1Pv2=gabang(Pv1, Pv2); %should be very small  -- Save this it is the angle difference btwn two methods of path calculation
+    disp(strcat('Angle between the two path vectors =    ',num2str(thetaPv1Pv2)))
+    disp('')
+    disp(' ')
+    disp('This angle should be very small!')
+    pause(0.75)
+    %thetaPosxaxis1Pv1
+    %Calculates the angle between the Posxaxis1 and Pathvector1
+    thetaPosxaxis1Pv1=gabang(Posxaxis1, Pv1);
+
+    %thetaPosxaxis1Pv1sign 
+    %Takes into account the sign of the angle between Pv1 and the Posxaxis1 (ie,+ x-axis)
+    signofslope=slope./(abs(slope)); %will equal either a postive or negative one
+    thetaPosxaxis1Pv1sign=thetaPosxaxis1Pv1.*signofslope; %angle in degrees
+
+    %Midlinevectorrot
+    %Midlinevector for all frames rotated by the opposite of the angle calculated in "thetaPosxaxisPv1sign"
+    A=thetaPosxaxis1Pv1sign.*(pi/180); %converts angle into radians
+    B=[cos(A) -sin(A); sin(A) cos(A)]; %rotates object clockwise around the origin, so a positive angle rotates clockwise and a negative angle rotates counterclockwise
+    Midlinevectorrot=Midlinevector*B; %orientation of midline adjusted for deviation of pathvector1 from + x-axis
+    
+    %AnteriorPlastron Sideslip 
+        %orthogonal distance of Point 2 from path of travel
+    SideslipAntPlastron=Midlinevectorrot(:,2);
+    SideslipAntPlastronBL=SideslipAntPlastron.*(1/BL);
+
+    %HeadVectorRot
+    HeadVectorRot=HeadvectorTrans*B;
+    
+    %Nosetip Sideslip
+    SideslipNose=HeadVectorRot(:,2);
+    SideslipNoseBL=SideslipNose.*(1/BL);
+    
+    %thetaPosxaxis2Midlinevectorrot
+    %Calculates the angle between the Posxaxis2 and Midlinevectorrot for all
+    %frames; the angle between the + x-axis and the adjusted turtle midline
+    thetaPosxaxis2Midlinevectorrot=gabang(Posxaxis2, Midlinevectorrot);
+    
+    %thetaPosxaxis2HeadVectorRot
+    %Calculates the angle between the Posxaxis2 and HeadVectorRot for all
+    %frames; the angle between the + x-axis and the adjusted head vector
+    thetaPosxaxis2HeadVectorRot=gabang(Posxaxis2, HeadVectorRot); 
+
+    %thetaVector45MidlinevectorrotSign
+    %Use Vector45 to determine whether the angle "thetaPosxaxis2Midlinevectorrot" is positive or negative;
+    %Calculate the angle between vector45 and Midlinevectorrot; if this is greater than 45 degrees than the value of the angle will be negative
+    thetaVector45Midlinevectorrot=gabang(Vector45, Midlinevectorrot);
+    thetaVector45MidlinevectorrotSign=(45-thetaVector45Midlinevectorrot)./(abs(45-thetaVector45Midlinevectorrot)); %determines whether "thetaPosxaxisMidlinevectorrot"
+    %will be positive or negative
+    
+    %thetaVector45HeadVectorRotSign
+    %Use Vector45 to determine whether the angle "thetaPosxaxis2HeadVectorRot" is positive or negative;
+    %Calculate the angle between vector45 and HeadVectorRot; if this is greater than 45 degrees than the value of the angle will be negative
+    thetaVector45HeadVectorRot=gabang(Vector45, HeadVectorRot);
+    thetaVector45HeadVectorRotSign=(45-thetaVector45HeadVectorRot)./(abs(45-thetaVector45HeadVectorRot)); %determines whether "thetaPosxaxisHeadVectorRot"
+    %will be positive or negative
+
+    %thetaPosxaxis2MidlinevectorrotSign
+    %The angle between the turtle's path and midline with correct sign values
+    thetaPosxaxis2MidlinevectorrotSign=thetaPosxaxis2Midlinevectorrot.*thetaVector45MidlinevectorrotSign;
+    YawBody=thetaPosxaxis2MidlinevectorrotSign;
+    
+    %thetaPosxaxis2HeadVectorRotSign
+    %The angle between the turtle's path and head with correct sign values
+    thetaPosxaxis2HeadVectorRotSign=thetaPosxaxis2HeadVectorRot.*thetaVector45HeadVectorRotSign;
+    YawHeadPath=thetaPosxaxis2HeadVectorRotSign;
+    
+%%% Calculates the sideslip of the COR
+    %CofRrotatedY
+    CofR=[CofRcol1M (CofRcol2M-yintercept)]; %the CofR x and y-values combined into one matrix
+    CofRrotated=CofR*B; %Rotate this matrix so that points straddle the x-axis like they straddle the regression line
+    CofRrotatedX=CofRrotated(:,1);
+    CofRrotatedY=CofRrotated(:,2);
+    %NEED TO FIGURE OUT WHY SUBTRACTING YINTERCEPT FROM Y-VALUES APPEARS TO HAVE CHANGED THE SCALE SO DRASTICALLY - May not actually be a problem!!!
+    SideslipVenCOR=CofRrotatedY;
+    SideslipVenCORBL=SideslipVenCOR.*(1/BL);
+    
+ 
+%%% Calculate Angles
+
+    %thetaMidlinevectorPosxaxis2
+    %Calculate the angle between Midlinevector and Posxaxis2
+    thetaMidlinevectorPosxaxis2=gabang(Midlinevector, Posxaxis2);
+
+    %thetaVector45MidlinevectorSign
+    %Use Vector45 to determine whether the angle "thetaMidlinevectorPosxaxis2" is positive or negative;
+    %Calculate the angle between vector45 and Midlinevector; if this is greater than 45 degrees than the value of the angle will be negative
+    thetaVector45Midlinevector=gabang(Vector45, Midlinevector);
+    thetaVector45MidlinevectorSign=(45-thetaVector45Midlinevector)./(abs(45-thetaVector45Midlinevector));
+
+    %thetaMidlinevectorPosxaxis2Sign
+    %The angle between the turtle's midline and the posxaxis with correct sign values
+    thetaMidlinevectorPosxaxis2Sign=thetaMidlinevectorPosxaxis2.*thetaVector45MidlinevectorSign;
+
+
+    
+%%------ START of Appendage Calculations ------
+    %%% Create appendage vectors
+    
+    %LHumVectorTrans
+    LShoulderTrans=LShoulder-LShoulder;
+    LElbowPointTrans=LElbowPoint-LShoulder;
+    LHumVectorTrans=LElbowPointTrans-LShoulderTrans;
+
+    %RHumVectorTrans
+    RShoulderTrans=RShoulder-RShoulder;
+    RElbowPointTrans=RElbowPoint-RShoulder;
+    RHumVectorTrans=RElbowPointTrans-RShoulderTrans;
+
+    %LFemurVectorTrans
+    LHipPointTrans=LHipPoint-LHipPoint;
+    LKneePointTrans=LKneePoint-LHipPoint;
+    LFemurVectorTrans=LKneePointTrans-LHipPointTrans;
+
+    %RFemurVectorTrans
+    RHipPointTrans=RHipPoint-RHipPoint;
+    RKneePointTrans=RKneePoint-RHipPoint;
+    RFemurVectorTrans=RKneePointTrans-RHipPointTrans;
+
+%%% Rotate the appendage vectors
+
+    C=thetaMidlinevectorPosxaxis2Sign.*(pi/180); %converts angle into radians
+
+    HeadvectorTransRot=ones(rowsofCofRcolMatrix, 2);
+    for a=1:1:rowsofCofRcolMatrix
+        HeadvectorTransRot(a,:)=HeadvectorTrans(a,:)*([cos(C(a,:)) -sin(C(a,:)); sin(C(a,:)) cos(C(a,:))]); %orientation of HeadvectorTrans adjusted for deviation of midline from + x-axis
+        LHumVectorTransRot(a,:)=LHumVectorTrans(a,:)*([cos(C(a,:)) -sin(C(a,:)); sin(C(a,:)) cos(C(a,:))]); %orientation of LHumVectorTrans adjusted for deviation of midline from + x-axis
+        RHumVectorTransRot(a,:)=RHumVectorTrans(a,:)*([cos(C(a,:)) -sin(C(a,:)); sin(C(a,:)) cos(C(a,:))]); %orientation of RHumVectorTrans adjusted for deviation of midline from + x-axis
+        LFemurVectorTransRot(a,:)=LFemurVectorTrans(a,:)*([cos(C(a,:)) -sin(C(a,:)); sin(C(a,:)) cos(C(a,:))]); %orientation of LFemurVectorTrans adjusted for deviation of midline from + x-axis
+        RFemurVectorTransRot(a,:)=RFemurVectorTrans(a,:)*([cos(C(a,:)) -sin(C(a,:)); sin(C(a,:)) cos(C(a,:))]); %orientation of RFemurVectorTrans adjusted for deviation of midline from + x-axis
+    end
+
+%%% Calculate angle between ""vectorTransRot and Posxaxis2 (same as the angle between the appendage vector and midline)
+
+    %thetaHeadvectorTransRotPosxaxis2
+    %Calculate the angle between HeadvectorTransRot and Posxaxis2
+    thetaHeadvectorTransRotPosxaxis2=gabang(HeadvectorTransRot, Posxaxis2); %Signless angle
+
+    %thetaLHumVectorTransRotPosxaxis2
+    %Calculate the angle between LHumVectorTransRot and Posxaxis2
+    thetaLHumVectorTransRotPosxaxis2=gabang(LHumVectorTransRot, Posxaxis2); %Signless angle
+
+    %thetaRHumVectorTransRotPosxaxis2
+    %Calculate the angle between RHumVectorTransRot and Posxaxis2
+    thetaRHumVectorTransRotPosxaxis2=gabang(RHumVectorTransRot, Posxaxis2); %Signless angle
+
+    %thetaLFemurVectorTransRotPosxaxis2
+    %Calculate the angle between LFemurVectorTransRot and Posxaxis2
+    thetaLFemurVectorTransRotPosxaxis2=gabang(LFemurVectorTransRot, Posxaxis2); %Data to output
+    lleg=thetaLFemurVectorTransRotPosxaxis2;
+    
+    %thetaRFemurVectorTransRotPosxaxis2
+    %Calculate the angle between RFemurVectorTransRot and Posxaxis2
+    thetaRFemurVectorTransRotPosxaxis2=gabang(RFemurVectorTransRot, Posxaxis2); %Data to output
+    rleg=thetaRFemurVectorTransRotPosxaxis2;
+    
+%%% Calculate the sign (+/-) of the angles theta""TransRotPosxaxis2 (Femur angles never go negative)
+
+    %thetaVector45HeadvectorTransRotSign
+    %Calculate the angle between vector45 and HeadvectorTransRot; if >45 deg than value of angle will be negative
+    thetaVector45HeadvectorTransRot=gabang(Vector45, HeadvectorTransRot);
+    thetaVector45HeadvectorTransRotSign=(45-thetaVector45HeadvectorTransRot)./(abs(45-thetaVector45HeadvectorTransRot));
+
+    %thetaPosVector90LHumVectorTransRotSign
+    %Calculate the angle between PosVector90 and LHumVectorTransRot; if >90 deg than value of angle will be negative
+    thetaPosVector90LHumVectorTransRot=gabang(PosVector90, LHumVectorTransRot);
+    thetaPosVector90LHumVectorTransRotSign=(90-thetaPosVector90LHumVectorTransRot)./(abs(90-thetaPosVector90LHumVectorTransRot)); 
+
+    %thetaNegVector90RHumVectorTransRotSign
+    %Calculate the angle between NegVector90 and RHumVectorTransRot; if >90 deg than value of angle will be negative
+    thetaNegVector90RHumVectorTransRot=gabang(NegVector90, RHumVectorTransRot);
+    thetaNegVector90RHumVectorTransRotSign=(90-thetaNegVector90RHumVectorTransRot)./(abs(90-thetaNegVector90RHumVectorTransRot)); 
+
+%%% Calculate the sign corrected angles for Head and L&R Hum (Femur angles never go negative)
+
+    %thetaHeadvectorTransRotPosxaxis2Sign
+    thetaHeadvectorTransRotPosxaxis2Sign=thetaHeadvectorTransRotPosxaxis2.*thetaVector45HeadvectorTransRotSign; %Data to output
+    YawHeadMidline=thetaHeadvectorTransRotPosxaxis2Sign; %Angle between head vector (nose to ant plastron) and midline vector
+        
+    %thetaLHumVectorTransRotPosxaxis2Sign
+    thetaLHumVectorTransRotPosxaxis2Sign=thetaLHumVectorTransRotPosxaxis2.*thetaPosVector90LHumVectorTransRotSign; %Data to output
+    larm=thetaLHumVectorTransRotPosxaxis2Sign;
+    
+    %thetaRHumVectorTransRotPosxaxis2Sign
+    thetaRHumVectorTransRotPosxaxis2Sign=thetaRHumVectorTransRotPosxaxis2.*thetaNegVector90RHumVectorTransRotSign; %Data to output
+    rarm=thetaRHumVectorTransRotPosxaxis2Sign;
+ 
+%%------ END of Appendage Calculations ------
+
+%------ Smoothing Appendage Angles For Full Trial ------
+[fdata,errcode,work]=gcvsplW(larm,2,3,0,0,rowfordisp);
+larmGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(rarm,2,3,0,0,rowfordisp);
+rarmGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(lleg,2,3,0,0,rowfordisp);
+llegGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(rleg,2,3,0,0,rowfordisp);
+rlegGCV=fdata;
+%------ END Smoothing Appendage Angles For Full Trial ------
+
+ timecode=ones(rows,1);
+    for tcd=1:1:rows
+        framecount=(tcd-1);
+        timecode(tcd,1)=framecount.*timeperframe;
+    end
+
+
+%------ SPECIFYING CYCLES ------
+disp(' ')
+disp(' ')
+
+
+for p=1:1:cycles
+    
+disp(' ');
+disp('Start & end frames for');disp(' ');disp(VenDigDataName(1:9));
+disp(' ');disp('Ventral Cycle #');disp(' ');disp(p);
+disp(' ')
+
+CycleStart=eval(strcat('cut',num2str(p)))
+CycleEnd=eval(strcat('cut',num2str((p+1))))
+
+pause(2.5)
+
+CycleStartADJ=CycleStart-startframe+1;
+CycleEndADJ=CycleEnd-startframe+1;
+
+disp ' '
+disp 'Now defining new matrices'
+disp ' '
+
+
+%------ DEFINE NEW MATRICES TO BE SMOOTHED THEN OUTPUT ------
+YawBodyCycle=YawBody(CycleStartADJ:CycleEndADJ,:); %Body Yaw
+YawHeadPathCycle=YawHeadPath(CycleStartADJ:CycleEndADJ,:); %Yaw of the head from path
+YawHeadMidlineCycle=YawHeadMidline(CycleStartADJ:CycleEndADJ,:); %Yaw of the head from midline of turtle
+llegCycle=lleg(CycleStartADJ:CycleEndADJ,:);
+rlegCycle=rleg(CycleStartADJ:CycleEndADJ,:);
+larmCycle=larm(CycleStartADJ:CycleEndADJ,:);
+rarmCycle=rarm(CycleStartADJ:CycleEndADJ,:);
+SideslipVenCORCycle=SideslipVenCOR(CycleStartADJ:CycleEndADJ,:); 
+SideslipVenCORBLCycle=SideslipVenCORBL(CycleStartADJ:CycleEndADJ,:);
+SideslipNoseCycle=SideslipNose(CycleStartADJ:CycleEndADJ,:);
+SideslipNoseBLCycle=SideslipNoseBL(CycleStartADJ:CycleEndADJ,:);
+SideslipAntPlastronCycle=SideslipAntPlastron(CycleStartADJ:CycleEndADJ,:);
+SideslipAntPlastronBLCycle=SideslipAntPlastronBL(CycleStartADJ:CycleEndADJ,:);
+
+
+DispMatNetColFinalCycle=DispMatNetColFinal(CycleStartADJ:CycleEndADJ,:); %Cum Disp meters matrix
+[rowDisp,colDisp]=size(DispMatNetColFinalCycle);
+for j=1:1:rowDisp
+    DispMatNetColFinalCycle(j,1)=DispMatNetColFinalCycle(j,1)-DispMatNetColFinal(CycleStartADJ,1);
+end
+
+disp ' '
+disp 'Now Smoothing Cycle Matrices'
+disp ' '
+
+%------ SMOOTH NEW MATRICES TO BE OUTPUT FOR THE CYCLE ------
+[fdata,errcode,work]=gcvsplW(DispMatNetColFinalCycle,2,3,0,1,101);
+VelCycleGCV=fdata;
+VelCycleGCV=VelCycleGCV.*framerate; %Instantaneous velocity (m/s)
+VelCycleBLGCV=VelCycleGCV./BL; %Instantaneous velocity (BL/s)
+
+[fdata,errcode,work]=gcvsplW(DispMatNetColFinalCycle,2,3,0,0,101);
+DispMatColFinalCycleGCV=fdata;
+
+DispMatColFinalBLCycleGCV=DispMatColFinalCycleGCV./BL;
+
+[fdata,errcode,work]=gcvsplW(SideslipVenCORCycle,2,3,0,0,101);
+SideslipVenCORCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(SideslipVenCORBLCycle,2,3,0,0,101);
+SideslipVenCORBLCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(SideslipNoseCycle,2,3,0,0,101);
+SideslipNoseCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(SideslipNoseBLCycle,2,3,0,0,101);
+SideslipNoseBLCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(SideslipAntPlastronCycle,2,3,0,0,101);
+SideslipAntPlastronCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(SideslipAntPlastronBLCycle,2,3,0,0,101);
+SideslipAntPlastronBLCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(rarmCycle,2,3,0,0,101);
+rarmCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(larmCycle,2,3,0,0,101);
+larmCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(rlegCycle,2,3,0,0,101);
+rlegCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(llegCycle,2,3,0,0,101);
+llegCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(YawHeadMidlineCycle,2,3,0,0,101);
+YawHeadMidlineCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(YawHeadPathCycle,2,3,0,0,101);
+YawHeadPathCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(YawBodyCycle,2,3,0,0,101);
+YawBodyCycleGCV=fdata;
+
+
+%------ LIST OF VARIABLES TO BE OUTPUT ------
+% rarmCycleGCV
+% larmCycleGCV
+% rlegCycleGCV
+% llegCycleGCV
+% DispMatColFinalCycleGCV %Cumulative Disp meters
+% DispMatColFinalBLCycleGCV %Cumulative Disp BL
+% VelCycleGCV %Instantaneous velocity (m/s)
+% VelCycleBLGCV %Instantaneous velocity (BL/s)
+% SideslipVenCORCycleGCV
+% SideslipVenCORBLCycleGCV
+% SideslipNoseCycleGCV
+% SideslipNoseBLCycleGCV
+% SideslipAntPlastronCycleGCV
+% SideslipAntPlastronBLCycleGCV
+% YawBodyCycleGCV
+% YawHeadPathCycleGCV
+% YawHeadMidlineCycleGCV
+
+
+%------ SAVING OUTPUT FOR TRIAL------
+disp ' '
+disp 'Now Saving Trial Data'
+disp ' '
+
+FileSaveName=VenDigDataName(1:9);
+FileSaveName=strcat(FileSaveName,'_ven','_Cycle_',num2str(p),'.xls');
+N=FileSaveName;
+
+sheetnames={'Trial Data','Cycle Data'};
+xlsheets(sheetnames,N);
+warning off MATLAB:xlswrite:AddSheet
+
+
+TrialColNames={'r-squared','Cumulative Disp (BL)','Cumulative Disp (m)',...
+     'Avg Vel (BL/sec)','Avg Vel (m/sec)','Anat Pos VenCOR',...
+     'Angle Btwn Path Vectors','VenCOR_X','VenCOR_Y'};
+ 
+ xlswrite(N,TrialColNames,'Trial Data','A1');
+ xlswrite(N,rsquare,'Trial Data','A2');
+ xlswrite(N,CumulativeDispBL,'Trial Data','B2');
+ xlswrite(N,CumulativeDisp,'Trial Data','C2');
+ xlswrite(N,MeanVelAllGCVBL,'Trial Data','D2');
+ disp ' '
+ disp '50% Done'
+ disp ' '
+ xlswrite(N,MeanVelAllGCV,'Trial Data','E2');
+ xlswrite(N,MinSumPointIndex,'Trial Data','F2');
+ xlswrite(N,thetaPv1Pv2,'Trial Data','G2');
+ xlswrite(N,CORXYMatrix,'Trial Data','H2');
+
+ disp ' '
+ disp 'Trial Data Saved'
+ disp ' '
+ 
+ %------ END SAVING FOR TRIAL ------
+%------ SAVE DATA FOR CYCLE ------
+CycleColNames={'larm','rarm','lleg','rleg','Disp (m)','Disp (BL)','Vel (m/s)',....
+    'Vel (BL/s)','SideslipVenCOR (m)','SideslipVenCOR (BL)','SideslipNose (m)',...
+    'SideslipNose (BL)','SideslipAntPlastron (m)','SideslipAntPlastron (BL)',...
+    'YawBody','YawHeadPath','YawHeadMidline'};
+
+disp 'Now Saving Cycle Data'
+disp ' '
+disp ' 0% Done'
+xlswrite(N,CycleColNames,'Cycle Data','A1');
+xlswrite(N,larmCycleGCV,'Cycle Data','A2');
+xlswrite(N,rarmCycleGCV,'Cycle Data','B2');
+xlswrite(N,llegCycleGCV,'Cycle Data','C2');
+xlswrite(N,rlegCycleGCV,'Cycle Data','D2');
+disp '25% Done'
+xlswrite(N,DispMatColFinalCycleGCV,'Cycle Data','E2');
+xlswrite(N,DispMatColFinalBLCycleGCV,'Cycle Data','F2');
+xlswrite(N,VelCycleGCV,'Cycle Data','G2');
+xlswrite(N,VelCycleBLGCV,'Cycle Data','H2');
+disp '50% Done'
+xlswrite(N,SideslipVenCORCycleGCV,'Cycle Data','I2');
+xlswrite(N,SideslipVenCORBLCycleGCV,'Cycle Data','J2');
+xlswrite(N,SideslipNoseCycleGCV,'Cycle Data','K2');
+xlswrite(N,SideslipNoseBLCycleGCV,'Cycle Data','L2');
+xlswrite(N,SideslipAntPlastronCycleGCV,'Cycle Data','M2');
+disp '75% Done'
+xlswrite(N,SideslipAntPlastronBLCycleGCV,'Cycle Data','N2');
+xlswrite(N,YawBodyCycleGCV,'Cycle Data','O2');
+xlswrite(N,YawHeadPathCycleGCV,'Cycle Data','P2');
+xlswrite(N,YawHeadMidlineCycleGCV,'Cycle Data','Q2');
+
+disp ' '
+disp 'Cycle Data Saved'
+disp ' '
+disp ' '
+%disp 'If you have more cycles to process, run option 5 to clear and then option 3 again!'
+disp ' '
+disp ' '
+end
+beep
+disp('You are done with this file!!!')
+pause(1)
+
+
+elseif choice==4 %Process lateral limb cycle
+    %------ Loading digitized file ------
+[LatDigDataName,LatDigDataPath]=uigetfile('*l*xypts.csv','Find Your Digitized Data from Lateral View','*l*xypts.csv');
+cd(LatDigDataPath);
+LatDigDataPreMatrix=csvread(LatDigDataName,1,0);
+    for TotalLatCols=1:1:6 %6 here because there are 3 points in lateral file
+    LatDigDataMatrix(:,TotalLatCols)=LatDigDataPreMatrix(:,TotalLatCols);
+    end
+%------ Done Loading digitized file ------
+
+%-------------Check for NaN--------------------------------
+NaNCheckLatDig=find(isnan(LatDigDataMatrix));
+
+if NaNCheckLatDig>0
+%    disp('Lateral Coordinate file is digitized incorrectly!');beep;
+    beep;
+    Latmsgbox=msgbox('Lateral Coordinate file Invalid','You Digitized Wrong! Be More Careful Next Time Buddy!','warn');
+    uiwait(Latmsgbox);
+else 
+    disp('Lateral Coordinate file is valid and loaded')
+end
+
+pause(0.75)
+%--------------End Check for NaN--------------------------- 
+
+%------Which turtle? - This determines the carapace length to use---------
+    clc
+     disp(' ')
+        choice=LatDigDataName(1,1:4);
+        if choice=='cp01'%1  %Cp01
+            CL=0.0993; turtle='CP01';
+        elseif choice=='cp02'%2  %Cp02
+            CL=0.1225; turtle='CP02';
+        elseif choice=='cp04'%3  %Cp04
+            CL=0.1127; turtle='CP04';
+        elseif choice=='cp05'%4  %Cp05
+            CL=0.1375; turtle='Cp05';
+        end
+   disp(strcat('You are working on  ',turtle));
+   
+   BL=CL;
+    
+   % X = 2 if swimmig Right to left, X = 0 if swimming left to right
+    if LatDigDataName(1,1:10)=='cp02s2k02l';day=1;x=2;startframe=1;endframe=89;cycles=3;cut1=1;cut2=30;cut3=57;cut4=89;
+elseif LatDigDataName(1,1:10)=='cp02s2k03l';day=1;x=0;startframe=1;endframe=98;cycles=3;cut1=1;cut2=33;cut3=63;cut4=98;
+elseif LatDigDataName(1,1:10)=='cp02s2k04l';day=1;x=0;startframe=1;endframe=93;cycles=3;cut1=1;cut2=32;cut3=62;cut4=93;
+elseif LatDigDataName(1,1:10)=='cp02s2k05l';day=1;x=0;startframe=1;endframe=102;cycles=3;cut1=1;cut2=30;cut3=63;cut4=102;
+elseif LatDigDataName(1,1:10)=='cp02s2k07l';day=1;x=0;startframe=1;endframe=99;cycles=3;cut1=1;cut2=31;cut3=64;cut4=99;
+elseif LatDigDataName(1,1:10)=='cp02s2k08l';day=1;x=0;startframe=1;endframe=93;cycles=3;cut1=1;cut2=31;cut3=63;cut4=93;
+elseif LatDigDataName(1,1:10)=='cp02s2k09l';day=1;x=0;startframe=1;endframe=78;cycles=3;cut1=1;cut2=26;cut3=53;cut4=78;
+elseif LatDigDataName(1,1:10)=='cp02s2k11l';day=1;x=0;startframe=1;endframe=79;cycles=3;cut1=1;cut2=27;cut3=52;cut4=79;
+elseif LatDigDataName(1,1:10)=='cp04s2k02l';day=1;x=0;startframe=1;endframe=79;cycles=3;cut1=1;cut2=28;cut3=55;cut4=79;
+elseif LatDigDataName(1,1:10)=='cp04s2k03l';day=1;x=0;startframe=1;endframe=77;cycles=3;cut1=1;cut2=30;cut3=58;cut4=77;
+elseif LatDigDataName(1,1:10)=='cp04s2k04l';day=1;x=0;startframe=1;endframe=93;cycles=3;cut1=1;cut2=28;cut3=62;cut4=93;
+elseif LatDigDataName(1,1:10)=='cp04s2k05l';day=1;x=0;startframe=1;endframe=76;cycles=3;cut1=1;cut2=27;cut3=56;cut4=76;
+elseif LatDigDataName(1,1:10)=='cp04s2k06l';day=1;x=0;startframe=1;endframe=80;cycles=3;cut1=1;cut2=28;cut3=52;cut4=80;
+elseif LatDigDataName(1,1:10)=='cp04s2k08l';day=1;x=0;startframe=1;endframe=99;cycles=3;cut1=1;cut2=33;cut3=67;cut4=99;
+elseif LatDigDataName(1,1:10)=='cp04s2k10l';day=1;x=0;startframe=1;endframe=78;cycles=3;cut1=1;cut2=28;cut3=58;cut4=78;
+elseif LatDigDataName(1,1:10)=='cp04s2k12l';day=1;x=0;startframe=1;endframe=78;cycles=3;cut1=1;cut2=28;cut3=55;cut4=78;
+elseif LatDigDataName(1,1:10)=='cp04s2k13l';day=1;x=0;startframe=1;endframe=84;cycles=3;cut1=1;cut2=29;cut3=58;cut4=84;
+elseif LatDigDataName(1,1:10)=='cp05s2k01l';day=1;x=0;startframe=1;endframe=92;cycles=3;cut1=1;cut2=31;cut3=62;cut4=92;
+elseif LatDigDataName(1,1:10)=='cp05s2k02l';day=1;x=0;startframe=1;endframe=104;cycles=3;cut1=1;cut2=35;cut3=70;cut4=104;
+elseif LatDigDataName(1,1:10)=='cp05s2k03l';day=1;x=0;startframe=1;endframe=70;cycles=3;cut1=1;cut2=27;cut3=50;cut4=70;
+elseif LatDigDataName(1,1:10)=='cp05s2k07l';day=1;x=0;startframe=1;endframe=78;cycles=3;cut1=1;cut2=27;cut3=52;cut4=78;
+elseif LatDigDataName(1,1:10)=='cp05s2k09l';day=1;x=0;startframe=1;endframe=77;cycles=3;cut1=1;cut2=26;cut3=52;cut4=77;
+elseif LatDigDataName(1,1:10)=='cp05s2k10l';day=1;x=2;startframe=1;endframe=82;cycles=3;cut1=1;cut2=28;cut3=55;cut4=82;
+elseif LatDigDataName(1,1:10)=='cp05s2k11l';day=1;x=0;startframe=1;endframe=69;cycles=3;cut1=1;cut2=24;cut3=47;cut4=69;
+elseif LatDigDataName(1,1:10)=='cp05s2k13l';day=1;x=0;startframe=1;endframe=117;cycles=3;cut1=1;cut2=37;cut3=73;cut4=117;
+elseif LatDigDataName(1,1:10)=='cp05s2k14l';day=1;x=0;startframe=1;endframe=84;cycles=3;cut1=1;cut2=28;cut3=56;cut4=84;
+%elseif LatDigDataName(1,1:9)=='cp66st14a';day=8;x=2;startframe=82;endframe=189;cycles=3;cut1=82;cut2=119;cut3=155;cut4=189;
+%elseif LatDigDataName(1,1:9)=='cp66st15a';day=9;x=0;startframe=33;endframe=137;cycles=3;cut1=33;cut2=63;cut3=95;cut4=137;
+%elseif LatDigDataName(1,1:9)=='cp66st16a';day=9;x=0;startframe=22;endframe=145;cycles=3;cut1=22;cut2=61;cut3=100;cut4=145;
+%elseif LatDigDataName(1,1:9)=='cp66st16b';day=9;x=2;startframe=8;endframe=119;cycles=3;cut1=8;cut2=45;cut3=84;cut4=119;
+%elseif LatDigDataName(1,1:9)=='cp66st17a';day=9;x=2;startframe=5;endframe=131;cycles=3;cut1=5;cut2=46;cut3=89;cut4=131;
+%elseif LatDigDataName(1,1:9)=='cp66st18a';day=9;x=0;startframe=64;endframe=198;cycles=3;cut1=64;cut2=111;cut3=152;cut4=198;  
+end
+
+pause(1.5)  
+
+   
+%------ END - Which turtle? ------
+
+%------ Load calibration data ------
+
+    %framerate=input('Enter EFFECTIVE framing rate correcting for skipped frames (fr/sec):  ');
+    framerate=100;
+    timeperframe=(1/framerate);
+    disp(' ')
+    clc
+    disp('Framerate in code is 100fps - if this is not right, adjust it in the code')
+    disp(' ')
+    disp(' ')
+    pause(0.75)
+    disp(' ')
+   
+
+    %What calibration?
+        if day==1  
+            LatcalName='MeKeelLatCalxypts.csv';VentcalName='MeKeelVenCalxypts.csv';filmday='Filming Day #1';
+        end
+
+Latcal=csvread(LatcalName,1,0,[1,0,1,3]);
+clc
+disp(' ')
+disp('Digitized Coordinates and Calibration loaded for:')
+disp(' ')
+disp(turtle)
+disp(' ')
+disp(filmday)
+pause(0.5)
+
+    LATxcaldiff=Latcal(1,3)-Latcal(1,1);
+    LATycaldiff=Latcal(1,4)-Latcal(1,2);
+    LATpixeldist=sqrt((LATxcaldiff^2)+(LATycaldiff^2));
+    LATVideoXYCal=CalibL./LATpixeldist; %multiply pixel values by this conversion factor to get meters
+%------ Done Loading Calibration ------
+
+%------ Correct for Turtle Swimming Right-to-Left (by making it appear that
+%turtle is swimming left-to-right)
+
+    coorddata=LatDigDataMatrix;
+    
+    [rows,columns]=size(coorddata); % calculates the size of the coordata matrix 
+    disp(' ')
+    disp(' ')
+    disp(' ')
+%   x=input('Is turtle swimming to the RIGHT (type "0") or LEFT (type "2")?  ','s');
+%   y=str2num(x);
+    y=x;
+    z=1-y;
+    coorddata=coorddata.*z;
+ 
+    %%% Assign origin (left point of calibration grid) and adjust coordinates
+    
+    for m=1:2:5 
+        coorddata(:,m)=coorddata(:,m)-Latcal(1,1);
+    end
+   
+    for m=2:2:6 
+        coorddata(:,m)=coorddata(:,m)-Latcal(1,2);
+    end
+%------ DONE Correcting for Direction of Swimming ------
+
+%------ SPECIFY LENGTH OF WHOLE SEQUENCE TO PROCESS ------
+    %Above rows and columns defines size of coorddata
+    
+% prompt = {'Start Frame (You Determined This in the Ventral Check):','End Frame (You Determined This in the Ventral Check:'};
+% dlg_title = 'Range to Use For Full Sequence';
+% num_lines = 1;
+% def = {'1',num2str(rows)};
+% answer = inputdlg(prompt,dlg_title,num_lines,def);
+% 
+% answer=str2double(answer);
+% startframe=answer(1:1);
+% endframe=answer(2:2);
+
+coorddata=coorddata(startframe:endframe,:);
+disp(' ')
+disp(' ')
+disp('Coordinate matrix has been reconfigured to use frame');disp(' '); ...
+    disp(startframe);disp('to');disp(' ');disp(endframe);disp('to calculate values for the whole trial sequence');
+pause(2.5)
+[rows,columns]=size(coorddata); %gets new size of coorddata 
+    
+%%% Calculate the COR position - this option copied from centrotAngieRevisedSAT
+%%% Generate completely interpolated matrix
+    
+    interpolatedmatrix=ones(rows,200);
+    interpolatedmatrix(:,1)=coorddata(:,1);
+    interpolatedmatrix(:,2)=coorddata(:,2);
+    interpolatedmatrix(:,199)=coorddata(:,3);	
+    interpolatedmatrix(:,200)=coorddata(:,4);
+
+    Xmultiplier=((coorddata(:,3)-coorddata(:,1))/99);
+    Ymultiplier=((coorddata(:,4)-coorddata(:,2))/99);
+
+    for v=(3:2:197)
+        interpolatedmatrix(:,v)=Xmultiplier+interpolatedmatrix(:,v-2);
+    end
+
+    for vv=(4:2:198)
+        interpolatedmatrix(:,vv)=Ymultiplier+interpolatedmatrix(:,vv-2);
+    end
+
+%%% Designate points (x & y coords) from interpolated matrix and calibrate to meters
+    
+    for i=1:1:100 %Creates x-coordinates for 100 points
+        temp1=['XPoint', int2str(i), '=interpolatedmatrix(:,i*2-1).*LATVideoXYCal'];
+        eval(temp1);
+    end
+
+    for i=1:1:100 %Creates y-coordinates for 100 points 
+        temp2=['YPoint', int2str(i), '=interpolatedmatrix(:,i*2).*LATVideoXYCal'];
+        eval(temp2);
+    end
+
+ clc %to clear the window of the huge matrices above
+ 
+    %Gabe created the above code to replace 200 lines of text (first 6 lines seen below)
+        %Point1X=interpolatedmatrix(:,1).*VideoXYCal;
+        %Point1Y=interpolatedmatrix(:,2).*VideoXYCal;
+        %Point2X=interpolatedmatrix(:,3).*VideoXYCal;
+        %Point2Y=interpolatedmatrix(:,4).*VideoXYCal;
+        %Point3X=interpolatedmatrix(:,5).*VideoXYCal;
+        %Point3Y=interpolatedmatrix(:,6).*VideoXYCal;
+
+    AllPointsXY=[XPoint1 YPoint1 XPoint2 YPoint2 XPoint3 YPoint3 XPoint4 YPoint4 XPoint5 YPoint5 XPoint6 YPoint6 XPoint7 YPoint7 XPoint8 YPoint8 XPoint9 YPoint9 XPoint10 YPoint10... 
+        XPoint11 YPoint11 XPoint12 YPoint12 XPoint13 YPoint13 XPoint14 YPoint14 XPoint15 YPoint15 XPoint16 YPoint16 XPoint17 YPoint17 XPoint18 YPoint18 XPoint19 YPoint19 XPoint20 YPoint20...
+		XPoint21 YPoint21 XPoint22 YPoint22 XPoint23 YPoint23 XPoint24 YPoint24 XPoint25 YPoint25 XPoint26 YPoint26 XPoint27 YPoint27 XPoint28 YPoint28 XPoint29 YPoint29 XPoint30 YPoint30...
+		XPoint31 YPoint31 XPoint32 YPoint32 XPoint33 YPoint33 XPoint34 YPoint34 XPoint35 YPoint35 XPoint36 YPoint36 XPoint37 YPoint37 XPoint38 YPoint38 XPoint39 YPoint39 XPoint40 YPoint40...
+		XPoint41 YPoint41 XPoint42 YPoint42 XPoint43 YPoint43 XPoint44 YPoint44 XPoint45 YPoint45 XPoint46 YPoint46 XPoint47 YPoint47 XPoint48 YPoint48 XPoint49 YPoint49 XPoint50 YPoint50...
+		XPoint51 YPoint51 XPoint52 YPoint52 XPoint53 YPoint53 XPoint54 YPoint54 XPoint55 YPoint55 XPoint56 YPoint56 XPoint57 YPoint57 XPoint58 YPoint58 XPoint59 YPoint59 XPoint60 YPoint60...
+		XPoint61 YPoint61 XPoint62 YPoint62 XPoint63 YPoint63 XPoint64 YPoint64 XPoint65 YPoint65 XPoint66 YPoint66 XPoint67 YPoint67 XPoint68 YPoint68 XPoint69 YPoint69 XPoint70 YPoint70...
+		XPoint71 YPoint71 XPoint72 YPoint72 XPoint73 YPoint73 XPoint74 YPoint74 XPoint75 YPoint75 XPoint76 YPoint76 XPoint77 YPoint77 XPoint78 YPoint78 XPoint79 YPoint79 XPoint80 YPoint80...
+		XPoint81 YPoint81 XPoint82 YPoint82 XPoint83 YPoint83 XPoint84 YPoint84 XPoint85 YPoint85 XPoint86 YPoint86 XPoint87 YPoint87 XPoint88 YPoint88 XPoint89 YPoint89 XPoint90 YPoint90...
+		XPoint91 YPoint91 XPoint92 YPoint92 XPoint93 YPoint93 XPoint94 YPoint94 XPoint95 YPoint95 XPoint96 YPoint96 XPoint97 YPoint97 XPoint98 YPoint98 XPoint99 YPoint99 XPoint100 YPoint100];
+
+    %%% Start of key point definitions
+	
+	AnteriorCarapaceX=coorddata(:,1).*LATVideoXYCal;
+	AnteriorCarapaceY=coorddata(:,2).*LATVideoXYCal;
+	PosteriorCarapaceX=coorddata(:,3).*LATVideoXYCal;
+	PosteriorCarapaceY=coorddata(:,4).*LATVideoXYCal;
+    NoseX=coorddata(:,5).*LATVideoXYCal;
+    NoseY=coorddata(:,6).*LATVideoXYCal;
+    
+	AnteriorCarapace=[AnteriorCarapaceX AnteriorCarapaceY];
+	PosteriorCarapace=[PosteriorCarapaceX PosteriorCarapaceY];
+    NosePoint=[NoseX NoseY];
+    
+    
+%%% Calculate COR (point of smallest cumulative displacement)  
+	
+    DispMatA=ones(rows-1,200);
+	
+	for p=2:1:rows
+        DispMatA=AllPointsXY(p,:)-AllPointsXY(p-1,:);
+		DispMatXvY(p-1,:)=DispMatA;%XY displacement matrix in meters
+    end
+
+% %---These lines seem odd & never are used anywhere else - commented out
+% %     %May 2009
+%     tpfMatXvY=ones(rows-1,200);
+% 	tpfMatXvY(:,:)=timeperframe;
+% 	VelMatXvY=DispMatXvY./tpfMatXvY;%XY velocity matrix in meters
+		
+    DispMatXvYsq=DispMatXvY.^2;%generate matrix of summed xy squared displacements
+    for a=1:1:100
+        DispMatNetSum(:,a)=DispMatXvYsq(:,a*2-1)+DispMatXvYsq(:,a*2);
+    end
+
+    %Gabe used the above code to replace 100 lines of text (first 7 lines seen below)    
+        %DispMatXvYsq=DispMatXvY.^2;%generate matrix of summed xy squared displacements
+        %DispMatNetSum(:,1)=DispMatXvYsq(:,1)+DispMatXvYsq(:,2);
+        %DispMatNetSum(:,2)=DispMatXvYsq(:,3)+DispMatXvYsq(:,4);
+        %DispMatNetSum(:,3)=DispMatXvYsq(:,5)+DispMatXvYsq(:,6);
+        %DispMatNetSum(:,4)=DispMatXvYsq(:,7)+DispMatXvYsq(:,8);
+        %DispMatNetSum(:,5)=DispMatXvYsq(:,9)+DispMatXvYsq(:,10);
+        %DispMatNetSum(:,6)=DispMatXvYsq(:,11)+DispMatXvYsq(:,12);
+
+    DispMatNet=DispMatNetSum.^0.5;% matrix of square roots of sum of squares = actual displacements
+	DispMatNetCum=sum(DispMatNet);
+	[MinSumPointVal,MinSumPointIndex] = min(DispMatNetCum); %returns value and index (matrix position) of minimum displacement point
+	DispMatNetColInit=DispMatNet(:,MinSumPointIndex);
+	[rows2,columns2]=size(DispMatNetColInit);
+	DispMatNetCol=zeros(rows2+1,1);
+		
+    for q2=2:1:(rows2+1)
+        DispMatNetCol(q2,:)=DispMatNetColInit(q2-1,:);%cumulative displacement matrix in meters
+    end
+	
+	DispMatNetColFinal=cumsum(DispMatNetCol); %Matrix of cumulative displacement in meters
+	DispMatNetColFinalBL=DispMatNetColFinal.*(1/BL); %Matrix of cumulative displacement in BL
+    [rowfordisp,colfordisp]=size(DispMatNetColFinalBL);
+    CumulativeDispBL=DispMatNetColFinalBL(rowfordisp,1); %Last value in matrix representing cumulative displacement (should be at least 3BL to use the trial)
+	CumulativeDisp=DispMatNetColFinal(rowfordisp,1); %Cumulative displacement in meters
+
+    %Calculate Velocity for Entire Sequence
+    [fdata,errcode,work]=gcvsplW(DispMatNetColFinal,2,3,0,1,rowfordisp);
+    VelAllGCV=fdata; %Smoothed velocity
+    VelAllGCV=VelAllGCV.*framerate; %Instantaneous Velocity in meters per second
+    VelAllGCVBL=VelAllGCV./BL; %Instantaneous velocity in BL/sec
+    
+    MeanVelAllGCV=mean(VelAllGCV); %Mean velocity (m/s) for entire sequence
+    MeanVelAllGCVBL=mean(VelAllGCVBL); %Mean velocity (BL/s) for entire sequence
+      
+    
+%%% Calculate the COR coordinates through sequence -(find both x & y columns of original data for assigned COR)
+    
+    valy=MinSumPointIndex*2;
+    valx=valy-1;
+    CofRcol1=interpolatedmatrix(:,valx); %finds column of original x-coordinate data
+    CofRcol2=interpolatedmatrix(:,valy); %finds column of original y-coordinate data
+    CofRcol1M=CofRcol1.*LATVideoXYCal; %converts to meters
+    CofRcol2M=CofRcol2.*LATVideoXYCal; %converts to meters
+    CORX=CofRcol1M;
+    CORY=CofRcol2M;
+    CORXYMatrix=[CORX CORY];
+
+%%% Calculates linear regression and correlation coefficient (r) for COR coord data (X=CofRcol1M; Y=CofRcol2M)
+    
+    rfromcorrelation=corrcoef(CofRcol1M,CofRcol2M);
+    disp(' ')
+    rsquare=rfromcorrelation(1,2)^2; % you see this and should write it down
+
+%%% Generates equation for line of best fit through data points
+    
+    corlineequation=polyfit(CofRcol1M,CofRcol2M,1);
+    yintercept=corlineequation(2);
+    slope=corlineequation(1);
+    fit=yintercept+slope*CofRcol1M;
+%     disp('COR (% of body length) = ')
+%     disp(MinSumPointIndex)
+	
+%%% Create vectors
+    
+    [rowsofCofRcolMatrix colsofCorRcolMatrix]=size(CofRcol1M); %Calculates how many rows (i.e., frames) in this sequence
+
+    %Posxaxis1
+    Posxaxis1=[1 0]; %Designates a vector for the + x-axis
+
+    %Posxaxis2
+    Posxaxis2=ones(rowsofCofRcolMatrix,2);
+    Posxaxis2(:,2)=0; %Designates a vector for the + x-axis in many rows
+
+    %Pathvector1
+    y1=yintercept+(CofRcol1M(1,1)*slope); %y-value for initial position of COR based on regression
+    y2=yintercept+(CofRcol1M(rowsofCofRcolMatrix,1)*slope); %y-value for final position of COR based on regression 
+    pathpoint1=[CofRcol1M(1,1) y1]; %initial coordinates of COR based on regression
+    pathpoint2=[CofRcol1M(rowsofCofRcolMatrix,1) y2]; %final coordinates of COR based on regression
+    pathpoint1trans=pathpoint1-pathpoint1; %pathpoint1trans is pathpoint1 moved to the origin
+    pathpoint2trans=pathpoint2-pathpoint1; %pathpoint2trans is adjusted accordly (to above)
+    Pathvector1=pathpoint2trans-pathpoint1trans; %Designates a vector in the direction of COR movement based on linear regression
+
+    %Pathvector2
+    %Create a path vector based on the initial and final coordinates of the COR
+    CORinitial=[CofRcol1M(1,1) CofRcol2M(1,1)];
+    CORfinal=[CofRcol1M(rowsofCofRcolMatrix,1) CofRcol2M(rowsofCofRcolMatrix,1)];
+    CORinitialtrans=CORinitial-CORinitial;
+    CORfinaltrans=CORfinal-CORinitial;
+    Pathvector2=CORfinaltrans-CORinitialtrans; %Designates a vector in the direction of COR movement based on actual position
+
+    %Midlinevector
+    PosteriorCarapacetrans=PosteriorCarapace-PosteriorCarapace;
+    AnteriorCarapacetrans=AnteriorCarapace-PosteriorCarapace;
+    Midlinevector=AnteriorCarapacetrans-PosteriorCarapacetrans; %Designates vector along midline of carapace with posterior point at origin
+
+    %HeadVector (for calculating Head Pitch)
+    NosePointTrans=NosePoint-AnteriorCarapace;
+    AnteriorCarapaceTransHeadPitch=AnteriorCarapace-AnteriorCarapace;
+    HeadvectorTrans=NosePointTrans-AnteriorCarapaceTransHeadPitch; %Designates a vector along head from Ant Plastron to nose with Ant Plastron at origin
+        
+     %Vector45
+    %Create a vector at 45 degrees from the positive x-axis in quadrant I
+    Vector45=ones(rowsofCofRcolMatrix, 2);
+    Vector45(:,:)=5;
+
+    %PosVector90
+    %Create a vector 90 degrees from the positive x-axis (in the +y direction)
+    PosVector90=ones(rowsofCofRcolMatrix, 2);
+    PosVector90(:,1)=0;
+    PosVector90(:,2)=1;
+
+    %NegVector90
+    %Create a vector 90 degrees from the positive x-axis (in the -y direction)
+    NegVector90=ones(rowsofCofRcolMatrix, 2);
+    NegVector90(:,1)=0;
+    NegVector90(:,2)=-1;   
+    
+%%% Create abbreviates for vectors
+    
+    %Posxaxis1
+    %Posxaxis2
+    Pv1=Pathvector1;
+    Pv2=Pathvector2;
+    %Midlinevector
+    %PosVector90
+    %NegVector90
+
+%%% Calculate angles between vectors
+    
+    %thetaPv1Pv2
+    %Calculates the magnitude of the angle between the two path vectors
+    thetaPv1Pv2=gabang(Pv1, Pv2); %should be very small  -- Save this it is the angle difference btwn two methods of path calculation
+    disp(strcat('Angle between the two path vectors =    ',num2str(thetaPv1Pv2)))
+    disp('')
+    disp(' ')
+    disp('This angle should be very small!')
+    pause(0.75)
+  
+    %thetaPosxaxis1Pv1
+    %Calculates the angle of the angle between the Posxaxis1 and Pathvector1
+    thetaPosxaxis1Pv1=gabang(Posxaxis1, Pv1);
+
+    %thetaPosxaxis1Pv1sign 
+    %Takes into account the sign of the angle between Pv1 and the Posxaxis1 (ie,+ x-axis)
+    signofslope=slope./(abs(slope)); %will equal either a postive or negative one
+    thetaPosxaxis1Pv1sign=thetaPosxaxis1Pv1.*signofslope; %angle in degrees
+
+    %Midlinevectorrot
+    %Midlinevector for all frames rotated by the opposite of the angle calculated in "thetaPosxaxisPv1sign"
+    A=thetaPosxaxis1Pv1sign.*(pi/180); %converts angle into radians
+    B=[cos(A) -sin(A); sin(A) cos(A)]; %rotates object clockwise around the origin, so a positive angle rotates clockwise and a negative angle rotates counterclockwise
+    Midlinevectorrot=Midlinevector*B; %orientation of midline adjusted for deviation of pathvector1 from + x-axis
+
+    %HeadVectorRot
+    HeadVectorRot=HeadvectorTrans*B;
+
+    %thetaPosxaxis2Midlinevectorrot
+    %Calculates the angle between the Posxaxis2 and Midlinevectorrot for all
+    %frames; the angle between the + x-axis and the adjusted turtle midline
+    thetaPosxaxis2Midlinevectorrot=gabang(Posxaxis2, Midlinevectorrot);
+  
+    %thetaPosxaxis2HeadVectorRot
+    %Calculates the angle between the Posxaxis2 and HeadVectorRot for all
+    %frames; the angle between the + x-axis and the adjusted head vector
+    thetaPosxaxis2HeadVectorRot=gabang(Posxaxis2, HeadVectorRot); 
+   
+    %thetaVector45MidlinevectorrotSign
+    %Use Vector45 to determine whether the angle "thetaPosxaxisMidlinevectorrot" is positive or negative;
+    %Calculate the angle between vector45 and Midlinevectorrot; if this is greater than 45 degrees than the value of the angle will be negative
+    thetaVector45Midlinevectorrot=gabang(Vector45, Midlinevectorrot);
+    thetaVector45MidlinevectorrotSign=(45-thetaVector45Midlinevectorrot)./(abs(45-thetaVector45Midlinevectorrot)); %determines whether "thetaPosxaxisMidlinevectorrot"
+    %will be positive or negative
+  
+     %thetaVector45HeadVectorRotSign
+    %Use Vector45 to determine whether the angle "thetaPosxaxis2HeadVectorRot" is positive or negative;
+    %Calculate the angle between vector45 and HeadVectorRot; if this is greater than 45 degrees than the value of the angle will be negative
+    thetaVector45HeadVectorRot=gabang(Vector45, HeadVectorRot);
+    thetaVector45HeadVectorRotSign=(45-thetaVector45HeadVectorRot)./(abs(45-thetaVector45HeadVectorRot)); %determines whether "thetaPosxaxisHeadVectorRot"
+    %will be positive or negative
+ 
+    %thetaPosxaxis2MidlinevectorrotSign
+    %The angle between the turtle's path and midline with correct sign values
+    thetaPosxaxis2MidlinevectorrotSign=thetaPosxaxis2Midlinevectorrot.*thetaVector45MidlinevectorrotSign;
+    PitchBody=thetaPosxaxis2MidlinevectorrotSign;
+    
+     %thetaPosxaxis2HeadVectorRotSign
+    %The angle between the turtle's path and head with correct sign values
+    thetaPosxaxis2HeadVectorRotSign=thetaPosxaxis2HeadVectorRot.*thetaVector45HeadVectorRotSign;
+    PitchHeadPath=thetaPosxaxis2HeadVectorRotSign;
+    
+    %%% Calculates the heave of the COR
+    %CofRrotatedY
+    CofR=[CofRcol1M (CofRcol2M-yintercept)]; %the CofR x and y-values combined into one matrix
+    CofRrotated=CofR*B; %Rotate this matrix so that points straddle the x-axis like they straddle the regression line
+    CofRrotatedX=CofRrotated(:,1);
+    CofRrotatedY=CofRrotated(:,2);
+    %NEED TO FIGURE OUT WHY SUBTRACTING YINTERCEPT FROM Y-VALUES APPEARS TO HAVE CHANGED THE SCALE SO DRASTICALLY - May not actually be a problem!!!
+    HeaveLatCOR=CofRrotatedY;
+    HeaveLatCORBL=HeaveLatCOR.*(1/BL);
+
+%%%% To Get PitchHeadBody
+    PitchHeadBody=PitchHeadPath-PitchBody;
+
+    
+timecode=ones(rows,1);
+    for tcd=1:1:rows
+        framecount=(tcd-1);
+        timecode(tcd,1)=framecount.*timeperframe;
+    end
+    
+%------ SPECIFYING CYCLES ------
+disp(' ')
+disp(' ')
+
+
+for p=1:1:cycles
+    
+disp(' ');
+disp('Start & end frames for');disp(' ');disp(LatDigDataName(1:9));
+disp(' ');disp('Lateral Cycle #');disp(' ');disp(p);
+disp(' ')
+
+CycleStart=eval(strcat('cut',num2str(p)))
+CycleEnd=eval(strcat('cut',num2str((p+1))))
+
+pause(2.5)
+
+CycleStartADJ=CycleStart-startframe+1;
+CycleEndADJ=CycleEnd-startframe+1;
+    
+disp ' '
+disp 'Now defining new matrices'
+disp ' '
+
+%------ DEFINE NEW MATRICES TO BE SMOOTHED THEN OUTPUT ------
+PitchBodyCycle=PitchBody(CycleStartADJ:CycleEndADJ,:); %Body Pitch
+PitchHeadPathCycle=PitchHeadPath(CycleStartADJ:CycleEndADJ,:); %Pitch of the head from path
+PitchHeadBodyCycle=PitchHeadBody(CycleStartADJ:CycleEndADJ,:); %Pitch of the head from midline of turtle
+HeaveLatCORCycle=HeaveLatCOR(CycleStartADJ:CycleEndADJ,:); 
+HeaveLatCORBLCycle=HeaveLatCORBL(CycleStartADJ:CycleEndADJ,:);
+
+
+DispMatNetColFinalCycle=DispMatNetColFinal(CycleStartADJ:CycleEndADJ,:); %Cum Disp meters matrix
+[rowDisp,colDisp]=size(DispMatNetColFinalCycle);
+for j=1:1:rowDisp
+    DispMatNetColFinalCycle(j,1)=DispMatNetColFinalCycle(j,1)-DispMatNetColFinal(CycleStartADJ,1);
+end
+
+disp ' '
+disp 'Now Smoothing Cycle Matrices'
+disp ' '
+
+%------ SMOOTH NEW MATRICES TO BE OUTPUT FOR THE CYCLE ------
+[fdata,errcode,work]=gcvsplW(DispMatNetColFinalCycle,2,3,0,1,101);
+VelCycleGCV=fdata;
+VelCycleGCV=VelCycleGCV.*framerate; %Instantaneous velocity (m/s)
+VelCycleBLGCV=VelCycleGCV./BL; %Instantaneous velocity (BL/s)
+
+[fdata,errcode,work]=gcvsplW(DispMatNetColFinalCycle,2,3,0,0,101);
+DispMatColFinalCycleGCV=fdata;
+
+DispMatColFinalBLCycleGCV=DispMatColFinalCycleGCV./BL;
+
+[fdata,errcode,work]=gcvsplW(PitchBodyCycle,2,3,0,0,101);
+PitchBodyCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(PitchHeadPathCycle,2,3,0,0,101);
+PitchHeadPathCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(PitchHeadBodyCycle,2,3,0,0,101);
+PitchHeadBodyCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(HeaveLatCORCycle,2,3,0,0,101);
+HeaveLatCORCycleGCV=fdata;
+
+[fdata,errcode,work]=gcvsplW(HeaveLatCORBLCycle,2,3,0,0,101);
+HeaveLatCORBLCycleGCV=fdata;
+
+%------ LIST OF VARIABLES TO BE OUTPUT ------    
+% DispMatColFinalCycleGCV %Cumulative Disp meters
+% DispMatColFinalBLCycleGCV %Cumulative Disp BL
+% VelCycleGCV %Instantaneous velocity (m/s)
+% VelCycleBLGCV %Instantaneous velocity (BL/s)
+% PitchBodyCycleGCV
+% PitchHeadPathCycleGCV
+% PitchHeadBodyCycleGCV
+% HeaveLatCORCycleGCV
+% HeaveLatCORBLCycleGCV
+
+%------ SAVING OUTPUT FOR TRIAL------
+disp ' '
+disp 'Now Saving Trial Data'
+disp ' '
+
+FileSaveName=LatDigDataName(1:9);
+FileSaveName=strcat(FileSaveName,'_lat','_Cycle_',num2str(p),'.xls');
+N=FileSaveName;
+
+sheetnames={'Trial Data','Cycle Data'};
+xlsheets(sheetnames,N);
+warning off MATLAB:xlswrite:AddSheet
+
+
+TrialColNames={'r-squared','Cumulative Disp (BL)','Cumulative Disp (m)',...
+     'Avg Vel (BL/sec)','Avg Vel (m/sec)','Anat Pos LatCOR',...
+     'Angle Btwn Path Vectors','LatCOR_X','LatCOR_Y'};
+ 
+ xlswrite(N,TrialColNames,'Trial Data','A1');
+ xlswrite(N,rsquare,'Trial Data','A2');
+ xlswrite(N,CumulativeDispBL,'Trial Data','B2');
+ xlswrite(N,CumulativeDisp,'Trial Data','C2');
+ xlswrite(N,MeanVelAllGCVBL,'Trial Data','D2');
+ disp ' '
+ disp '50% Done'
+ disp ' '
+ xlswrite(N,MeanVelAllGCV,'Trial Data','E2');
+ xlswrite(N,MinSumPointIndex,'Trial Data','F2');
+ xlswrite(N,thetaPv1Pv2,'Trial Data','G2');
+ xlswrite(N,CORXYMatrix,'Trial Data','H2');
+
+ disp ' '
+ disp 'Trial Data Saved'
+ disp ' '
+%------ END SAVING FOR TRIAL ------  
+
+%------ SAVE DATA FOR CYCLE ------
+CycleColNames={'Disp (m)','Disp (BL)','Vel (m/s)','Vel (BL/s)',...
+    'PitchBody','PitchHeadPath','PitchHeadBody','HeaveLatCOR (m)',...
+    'HeaveLatCOR (BL)'};
+
+disp 'Now Saving Cycle Data'
+disp ' '
+disp ' 0% Done'
+xlswrite(N,CycleColNames,'Cycle Data','A1');
+xlswrite(N,DispMatColFinalCycleGCV,'Cycle Data','A2');
+disp '25% Done'
+xlswrite(N,DispMatColFinalBLCycleGCV,'Cycle Data','B2');
+xlswrite(N,VelCycleGCV,'Cycle Data','C2');
+xlswrite(N,VelCycleBLGCV,'Cycle Data','D2');
+disp '50% Done'
+xlswrite(N,PitchBodyCycleGCV,'Cycle Data','E2');
+xlswrite(N,PitchHeadPathCycleGCV,'Cycle Data','F2');
+disp '75% Done'
+xlswrite(N,PitchHeadBodyCycleGCV,'Cycle Data','G2');
+xlswrite(N,HeaveLatCORCycleGCV,'Cycle Data','H2');
+xlswrite(N,HeaveLatCORBLCycleGCV,'Cycle Data','I2');
+
+disp ' '
+disp 'Cycle Data Saved'
+disp ' '
+disp ' '
+%disp 'If you have more cycles to process, run option 5 to clear and then option 3 again!'
+disp ' '
+disp ' '
+end
+beep
+disp('You are done with this file!!!')
+pause(1)
+
+
+
+elseif choice==5 %Refresh
+    
+    clear
+    disp ' '
+    disp ' '
+    Cryptodire_FreshwaterTurtleStability_NoFlow
+    end
+end
